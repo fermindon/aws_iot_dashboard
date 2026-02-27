@@ -1,0 +1,514 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Static website hosted on S3 + CloudFront (minimal)
+
+Resources:
+  WebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+
+  OriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: Access identity for static site
+
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebsiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontRead
+            Effect: Allow
+            Principal:
+              CanonicalUser: !GetAtt OriginAccessIdentity.S3CanonicalUserId
+            Action: s3:GetObject
+            Resource: !Sub arn:aws:s3:::${WebsiteBucket}/*
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt WebsiteBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${OriginAccessIdentity}
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+        DefaultRootObject: index.html
+
+  MessagesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: deviceId
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: N
+      KeySchema:
+        - AttributeName: deviceId
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  ConnectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: connectionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: connectionId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  WebSocketApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: StaticSiteWebSocketApi
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: "$request.body.action"
+
+  WebSocketDeployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+      - WebSocketRouteConnect
+      - WebSocketRouteDisconnect
+      - WebSocketApi
+    Properties:
+      ApiId: !Ref WebSocketApi
+
+  WebSocketStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref WebSocketApi
+      AutoDeploy: true
+      StageName: prod
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: LambdaDDBAndAPIPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:Scan
+                  - dynamodb:Query
+                  - dynamodb:DeleteItem
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - execute-api:ManageConnections
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+
+  ConnectionHandlerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.9
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 10
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import os
+          dynamo = boto3.client('dynamodb')
+          TABLE = os.environ.get('CONNECTIONS_TABLE')
+
+          def handler(event, context):
+              route = event.get('requestContext', {}).get('routeKey')
+              conn = event.get('requestContext', {}).get('connectionId')
+              if route == '$connect':
+                  dynamo.put_item(TableName=TABLE, Item={'connectionId':{'S':conn}})
+                  return {'statusCode':200}
+              elif route == '$disconnect':
+                  dynamo.delete_item(TableName=TABLE, Key={'connectionId':{'S':conn}})
+                  return {'statusCode':200}
+              return {'statusCode':200}
+      Environment:
+        Variables:
+          CONNECTIONS_TABLE: !Ref ConnectionsTable
+
+  IotRelayFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.9
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import os
+          from botocore.exceptions import ClientError
+
+          ddb = boto3.client('dynamodb')
+          TABLE = os.environ.get('MESSAGES_TABLE')
+          CONN_TABLE = os.environ.get('CONNECTIONS_TABLE')
+          APIGW_ENDPOINT = os.environ.get('APIGW_ENDPOINT')
+
+          def post_to_connection(client, endpoint, connectionId, payload):
+              try:
+                  client.post_to_connection(Data=json.dumps(payload).encode('utf-8'), ConnectionId=connectionId)
+              except ClientError as e:
+                  # ignore stale connections
+                  if e.response['Error']['Code'] == 'GoneException':
+                      ddb.delete_item(TableName=CONN_TABLE, Key={'connectionId':{'S':connectionId}})
+
+          def handler(event, context):
+              # IoT sends the MQTT message as event
+              import time
+              import uuid
+              
+              # Extract device ID from payload's 'device' field
+              device_id = 'unknown-device'
+              
+              # Try to get from payload
+              payload = event.get('payload')
+              if isinstance(payload, dict):
+                  device_id = payload.get('device') or device_id
+              elif isinstance(payload, str):
+                  try:
+                      payload_dict = json.loads(payload)
+                      device_id = payload_dict.get('device') or device_id
+                  except:
+                      pass
+              
+              # Extract sensor readings from payload
+              temperature = None
+              humidity = None
+              pressure = None
+              
+              sensor_payload = event.get('payload')
+              if isinstance(sensor_payload, dict):
+                  temperature = sensor_payload.get('temperature')
+                  humidity = sensor_payload.get('humidity')
+                  pressure = sensor_payload.get('pressure')
+              elif isinstance(sensor_payload, str):
+                  try:
+                      sensor_payload_dict = json.loads(sensor_payload)
+                      temperature = sensor_payload_dict.get('temperature')
+                      humidity = sensor_payload_dict.get('humidity')
+                      pressure = sensor_payload_dict.get('pressure')
+                  except:
+                      pass
+              
+              # Store message with timestamp and TTL (30 days)
+              timestamp = int(time.time() * 1000)  # milliseconds
+              ttl = int(time.time()) + (30 * 24 * 60 * 60)  # 30 days from now
+              
+              item = {
+                  'deviceId': {'S': str(device_id)},
+                  'timestamp': {'N': str(timestamp)},
+                  'id': {'S': str(uuid.uuid4())},
+                  'message': {'S': json.dumps(event)},
+                  'ttl': {'N': str(ttl)}
+              }
+              
+              # Add sensor readings if available
+              if temperature is not None:
+                  item['temperature'] = {'N': str(float(temperature))}
+              if humidity is not None:
+                  item['humidity'] = {'N': str(float(humidity))}
+              if pressure is not None:
+                  item['pressure'] = {'N': str(float(pressure))}
+              
+              ddb.put_item(TableName=TABLE, Item=item)
+
+              # broadcast to websocket clients
+              # list connections
+              resp = ddb.scan(TableName=CONN_TABLE)
+              connections = [r['connectionId']['S'] for r in resp.get('Items',[])]
+              if connections:
+                  apigw = boto3.client('apigatewaymanagementapi', endpoint_url=APIGW_ENDPOINT)
+                  payload = {'topic':'esp8266/pub','data':event}
+                  for c in connections:
+                      post_to_connection(apigw, APIGW_ENDPOINT, c, payload)
+              return {}
+      Environment:
+        Variables:
+          MESSAGES_TABLE: !Ref MessagesTable
+          CONNECTIONS_TABLE: !Ref ConnectionsTable
+          APIGW_ENDPOINT: !Sub https://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/prod
+
+  WebSocketConnectPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ConnectionHandlerFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*/*
+
+  WebSocketIntegrationConnect:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConnectionHandlerFunction.Arn}/invocations
+
+  WebSocketRouteConnect:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketApi
+      RouteKey: $connect
+      Target: !Sub integrations/${WebSocketIntegrationConnect}
+
+  WebSocketIntegrationDisconnect:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConnectionHandlerFunction.Arn}/invocations
+
+  WebSocketRouteDisconnect:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketApi
+      RouteKey: $disconnect
+      Target: !Sub integrations/${WebSocketIntegrationDisconnect}
+
+  IoTRuleInvokeLambda:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      TopicRulePayload:
+        RuleDisabled: false
+        Sql: "SELECT * FROM 'esp8266/pub'"
+        Actions:
+          - Lambda:
+              FunctionArn: !GetAtt IotRelayFunction.Arn
+
+  AllowIoTInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref IotRelayFunction
+      Action: lambda:InvokeFunction
+      Principal: iot.amazonaws.com
+
+  QueryFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.9
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 10
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import os
+          from decimal import Decimal
+
+          ddb = boto3.client('dynamodb')
+          TABLE = os.environ.get('MESSAGES_TABLE')
+
+          class DecimalEncoder(json.JSONEncoder):
+              def default(self, o):
+                  if isinstance(o, Decimal):
+                      return float(o)
+                  return super().default(o)
+
+          def get_devices():
+              """Scan table and return all unique device IDs"""
+              try:
+                  devices = set()
+                  params = {
+                      'TableName': TABLE,
+                      'ProjectionExpression': 'deviceId'
+                  }
+                  
+                  while True:
+                      resp = ddb.scan(**params)
+                      for item in resp.get('Items', []):
+                          devices.add(item.get('deviceId', {}).get('S', 'unknown'))
+                      
+                      if 'LastEvaluatedKey' not in resp:
+                          break
+                      params['ExclusiveStartKey'] = resp['LastEvaluatedKey']
+                  
+                  return {
+                      'statusCode': 200,
+                      'body': json.dumps({
+                          'devices': sorted(list(devices)),
+                          'count': len(devices)
+                      })
+                  }
+              except Exception as e:
+                  return {
+                      'statusCode': 500,
+                      'body': json.dumps({'error': str(e)})
+                  }
+
+          def get_messages(device_id, limit=100):
+              """Query messages for a specific device"""
+              try:
+                  limit = min(int(limit), 1000)  # Max 1000 items
+                  
+                  resp = ddb.query(
+                      TableName=TABLE,
+                      KeyConditionExpression='deviceId = :device_id',
+                      ExpressionAttributeValues={
+                          ':device_id': {'S': device_id}
+                      },
+                      ScanIndexForward=False,  # Latest first
+                      Limit=limit
+                  )
+
+                  items = []
+                  for item in resp.get('Items', []):
+                      msg = {
+                          'id': item.get('id', {}).get('S', ''),
+                          'deviceId': item.get('deviceId', {}).get('S', ''),
+                          'timestamp': int(item.get('timestamp', {}).get('N', '0')),
+                          'message': json.loads(item.get('message', {}).get('S', '{}'))
+                      }
+                      # Add sensor readings if available
+                      if 'temperature' in item:
+                          msg['temperature'] = float(item['temperature']['N'])
+                      if 'humidity' in item:
+                          msg['humidity'] = float(item['humidity']['N'])
+                      if 'pressure' in item:
+                          msg['pressure'] = float(item['pressure']['N'])
+                      items.append(msg)
+
+                  return {
+                      'statusCode': 200,
+                      'body': json.dumps({
+                          'deviceId': device_id,
+                          'count': len(items),
+                          'messages': items
+                      }, cls=DecimalEncoder)
+                  }
+              except Exception as e:
+                  return {
+                      'statusCode': 500,
+                      'body': json.dumps({'error': str(e)})
+                  }
+
+          def handler(event, context):
+              """Route handler for /devices and /messages endpoints"""
+              # HTTP API sends path in rawPath
+              path = event.get('rawPath', event.get('path', ''))
+              params = event.get('queryStringParameters') or {}
+              
+              if path.endswith('/devices') or path == '/devices':
+                  return get_devices()
+              elif path.endswith('/messages') or path == '/messages':
+                  device_id = params.get('deviceId', 'unknown')
+                  limit = params.get('limit', '100')
+                  return get_messages(device_id, limit)
+              else:
+                  return {
+                      'statusCode': 404,
+                      'body': json.dumps({'error': 'Not found', 'path': path})
+                  }
+      Environment:
+        Variables:
+          MESSAGES_TABLE: !Ref MessagesTable
+
+  QueryHttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: MessagesQueryApi
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowMethods:
+          - GET
+        AllowHeaders:
+          - '*'
+
+  QueryApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt QueryFunction.Arn
+      PayloadFormatVersion: '2.0'
+
+  QueryDevicesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'GET /devices'
+      Target: !Sub integrations/${QueryApiIntegration}
+
+  QueryMessagesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'GET /messages'
+      Target: !Sub integrations/${QueryApiIntegration}
+
+  QueryApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      StageName: api
+      AutoDeploy: true
+
+  QueryLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref QueryFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${QueryHttpApi}/*/*
+
+
+Outputs:
+  BucketName:
+    Description: Name of the S3 bucket for website content
+    Value: !Ref WebsiteBucket
+
+  CloudFrontDomain:
+    Description: CloudFront distribution domain name
+    Value: !GetAtt CloudFrontDistribution.DomainName
+
+  WebSocketEndpoint:
+    Description: WebSocket API endpoint URL for clients
+    Value: !Sub wss://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/prod
+
+  QueryApiEndpoint:
+    Description: HTTP API endpoint for querying historical messages
+    Value: !Sub https://${QueryHttpApi}.execute-api.${AWS::Region}.amazonaws.com/api

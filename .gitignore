@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+*.pyc
+__pycache__/
+.Python
+env/
+venv/
+
+# AWS
+.aws/
+*.pem
+aws-credentials.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+website/config.json
+.env
+*.log
+
+# Build outputs
+dist/
+build/
