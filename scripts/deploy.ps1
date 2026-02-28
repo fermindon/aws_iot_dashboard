@@ -35,6 +35,10 @@ if ($cfg.Count -gt 0) {
   $cfg | ConvertTo-Json | Set-Content -Path website\config.json -Encoding UTF8
 }
 
+Write-Host "Building TypeScript..."
+npm run build
+if ($LASTEXITCODE -ne 0) { throw "TypeScript build failed" }
+
 aws s3 sync website/ "s3://$bucket" --region $Region --delete
 if ($LASTEXITCODE -ne 0) { throw "s3 sync failed" }
 

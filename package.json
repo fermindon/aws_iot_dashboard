@@ -1,0 +1,17 @@
+{
+  "name": "aws-iot-dashboard",
+  "version": "1.0.0",
+  "description": "AWS IoT Dashboard with real-time data visualization",
+  "scripts": {
+    "build": "esbuild website/ts/*.ts --bundle --outdir=website/js --minify",
+    "watch": "esbuild website/ts/*.ts --bundle --outdir=website/js --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "^0.19.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.0"
+  }
+}
