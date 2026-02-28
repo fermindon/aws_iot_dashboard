@@ -126,15 +126,13 @@ header h1 {
 .dashboard {
   display: flex;
   flex: 1;
-  max-width: 1400px;
-  margin: 2rem auto;
-  gap: 2rem;
-  width: 100%;
-  padding: 0 2rem;
+  margin: 2rem;
+  gap: 1.5rem;
 }
 
 .sidebar {
-  width: 280px;
+  width: 220px;
+  min-width: 220px;
   background: var(--bg-secondary);
   padding: 1.5rem;
   border-radius: 8px;
@@ -192,9 +190,11 @@ header h1 {
 
 .main-content {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  overflow: hidden;
 }
 
 .device-details,
@@ -253,6 +253,11 @@ header h1 {
   padding: 1.5rem;
   background: var(--bg-tertiary);
   border-radius: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid var(--border-color);
+  min-height: 550px;
+  width: 100%;
 }
 
 .chart-container h3 {
@@ -262,7 +267,29 @@ header h1 {
 }
 
 .chart-container canvas {
-  max-height: 400px;
+  display: block;
+  margin: 0;
+  padding-right: 4rem;
+}
+
+/* Custom scrollbar styling */
+.chart-container::-webkit-scrollbar {
+  height: 12px;
+}
+
+.chart-container::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 6px;
+}
+
+.chart-container::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 6px;
+  border: 2px solid var(--bg-secondary);
+}
+
+.chart-container::-webkit-scrollbar-thumb:hover {
+  background: #667eea;
 }
 
 .raw-messages h2 {
@@ -435,12 +462,13 @@ header h1 {
 
 @media (max-width: 1024px) {
   .dashboard {
-    flex-direction: column;
     gap: 1rem;
+    margin: 1rem;
   }
-  
+
   .sidebar {
-    width: 100%;
+    width: 180px;
+    min-width: 180px;
   }
 }
 
@@ -448,27 +476,32 @@ header h1 {
   header {
     padding: 1rem;
   }
-  
+
   header h1 {
     font-size: 1.5rem;
     margin-bottom: 0.5rem;
   }
-  
+
   .header-controls {
     flex-direction: column;
     gap: 0.5rem;
   }
-  
+
   .dashboard {
-    padding: 0 1rem;
-    margin: 1rem auto;
+    flex-direction: column;
+    margin: 1rem;
   }
-  
+
+  .sidebar {
+    width: 100%;
+    min-width: unset;
+  }
+
   .device-details,
   .raw-messages {
     padding: 1rem;
   }
-  
+
   .metrics-grid {
     grid-template-columns: 1fr;
   }

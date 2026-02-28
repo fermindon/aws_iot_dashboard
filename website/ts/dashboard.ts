@@ -409,7 +409,7 @@ class DeviceDashboard {
 
     const labels = device.timestamps.map((ts) => ts.toLocaleTimeString());
 
-    this.updateChart('temperature', labels, device.temperatures, '🌡️ Temperature (°C)', '#e74c3c');
+    this.updateChart('temperature', labels, device.temperatures, '🌡️ Temperature (°F)', '#e74c3c');
     this.updateChart('humidity', labels, device.humidities, '💧 Humidity (%)', '#3498db');
     this.updateChart('pressure', labels, device.pressures, '🔵 Pressure (hPa)', '#f39c12');
   }
@@ -423,6 +423,13 @@ class DeviceDashboard {
   ): void {
     const canvas = document.getElementById(`${type}-chart`) as HTMLCanvasElement;
     if (!canvas) return;
+
+    // Set canvas dimensions based on data points for horizontal scrolling
+    const minWidthPerPoint = 60; // pixels per data point
+    const rightPadding = 100; // padding at end
+    const canvasWidth = Math.max(600, labels.length * minWidthPerPoint + rightPadding);
+    canvas.width = canvasWidth;
+    canvas.height = 500;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -454,8 +461,8 @@ class DeviceDashboard {
         ],
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: true,
+        responsive: false,
+        maintainAspectRatio: false,
         onClick: (event, elements) => {
           if (elements.length > 0) {
             const elementIndex = elements[0].index;
