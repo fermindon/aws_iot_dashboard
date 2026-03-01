@@ -81,6 +81,17 @@ Resources:
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
 
+  DeviceMetadataTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: deviceId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: deviceId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
   WebSocketApi:
     Type: AWS::ApiGatewayV2::Api
     Properties:
@@ -468,6 +479,106 @@ Resources:
         Variables:
           MESSAGES_TABLE: !Ref MessagesTable
 
+  GetDeviceMetadataFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.9
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 10
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import os
+          ddb = boto3.client('dynamodb')
+          TABLE = os.environ.get('METADATA_TABLE')
+
+          def handler(event, context):
+              path = event.get('rawPath', '')
+              params = event.get('queryStringParameters', {}) or {}
+              
+              if path == '/device-metadata':
+                  device_id = params.get('deviceId')
+                  if not device_id:
+                      return {'statusCode': 400, 'body': json.dumps({'error': 'Missing deviceId'})}
+                  
+                  try:
+                      response = ddb.get_item(TableName=TABLE, Key={'deviceId': {'S': device_id}})
+                      if 'Item' in response:
+                          item = response['Item']
+                          return {
+                              'statusCode': 200,
+                              'body': json.dumps({
+                                  'deviceId': item.get('deviceId', {}).get('S', ''),
+                                  'name': item.get('name', {}).get('S', ''),
+                                  'location': item.get('location', {}).get('S', ''),
+                                  'description': item.get('description', {}).get('S', ''),
+                                  'sensorType': item.get('sensorType', {}).get('S', ''),
+                                  'firmwareVersion': item.get('firmwareVersion', {}).get('S', '')
+                              })
+                          }
+                      else:
+                          return {
+                              'statusCode': 200,
+                              'body': json.dumps({
+                                  'deviceId': device_id,
+                                  'name': '',
+                                  'location': '',
+                                  'description': '',
+                                  'sensorType': '',
+                                  'firmwareVersion': ''
+                              })
+                          }
+                  except Exception as e:
+                      return {'statusCode': 500, 'body': json.dumps({'error': str(e)})}
+              else:
+                  return {'statusCode': 404, 'body': json.dumps({'error': 'Not found'})}
+      Environment:
+        Variables:
+          METADATA_TABLE: !Ref DeviceMetadataTable
+
+  UpdateDeviceMetadataFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.9
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 10
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import os
+          ddb = boto3.client('dynamodb')
+          TABLE = os.environ.get('METADATA_TABLE')
+
+          def handler(event, context):
+              path = event.get('rawPath', '')
+              method = event.get('requestContext', {}).get('http', {}).get('method', '')
+              
+              if path == '/device-metadata' and method == 'POST':
+                  try:
+                      body = json.loads(event.get('body', '{}'))
+                      device_id = body.get('deviceId')
+                      if not device_id:
+                          return {'statusCode': 400, 'body': json.dumps({'error': 'Missing deviceId'})}
+                      
+                      item = {'deviceId': {'S': device_id}}
+                      for key in ['name', 'location', 'description', 'sensorType', 'firmwareVersion']:
+                          if key in body and body[key]:
+                              item[key] = {'S': str(body[key])}
+                      
+                      ddb.put_item(TableName=TABLE, Item=item)
+                      return {'statusCode': 200, 'body': json.dumps({'success': True, 'deviceId': device_id})}
+                  except Exception as e:
+                      return {'statusCode': 500, 'body': json.dumps({'error': str(e)})}
+              else:
+                  return {'statusCode': 404, 'body': json.dumps({'error': 'Not found'})}
+      Environment:
+        Variables:
+          METADATA_TABLE: !Ref DeviceMetadataTable
+
   QueryHttpApi:
     Type: AWS::ApiGatewayV2::Api
     Properties:
@@ -478,6 +589,7 @@ Resources:
           - '*'
         AllowMethods:
           - GET
+          - POST
         AllowHeaders:
           - '*'
 
@@ -487,6 +599,22 @@ Resources:
       ApiId: !Ref QueryHttpApi
       IntegrationType: AWS_PROXY
       IntegrationUri: !GetAtt QueryFunction.Arn
+      PayloadFormatVersion: '2.0'
+
+  GetMetadataIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt GetDeviceMetadataFunction.Arn
+      PayloadFormatVersion: '2.0'
+
+  UpdateMetadataIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt UpdateDeviceMetadataFunction.Arn
       PayloadFormatVersion: '2.0'
 
   QueryDevicesRoute:
@@ -503,6 +631,20 @@ Resources:
       RouteKey: 'GET /messages'
       Target: !Sub integrations/${QueryApiIntegration}
 
+  GetDeviceMetadataRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'GET /device-metadata'
+      Target: !Sub integrations/${GetMetadataIntegration}
+
+  UpdateDeviceMetadataRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'POST /device-metadata'
+      Target: !Sub integrations/${UpdateMetadataIntegration}
+
   QueryApiStage:
     Type: AWS::ApiGatewayV2::Stage
     Properties:
@@ -514,6 +656,22 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref QueryFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${QueryHttpApi}/*/*
+
+  GetMetadataLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref GetDeviceMetadataFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${QueryHttpApi}/*/*
+
+  UpdateMetadataLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref UpdateDeviceMetadataFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${QueryHttpApi}/*/*

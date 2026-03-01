@@ -54,6 +54,7 @@
                 <button class="tab-btn active" data-tab="temperature">🌡️ Temperature</button>
                 <button class="tab-btn" data-tab="humidity">💧 Humidity</button>
                 <button class="tab-btn" data-tab="pressure">🔵 Pressure</button>
+                <button class="tab-btn" data-tab="info">ℹ️ Device Info</button>
               </div>
 
               <div id="temperature-tab" class="tab-content active">
@@ -74,6 +75,35 @@
                 <div class="chart-container">
                   <h3>Pressure vs Time</h3>
                   <canvas id="pressure-chart"></canvas>
+                </div>
+              </div>
+
+              <div id="info-tab" class="tab-content">
+                <div class="info-container">
+                  <form id="device-info-form">
+                    <div class="form-group">
+                      <label for="info-name">Device Name:</label>
+                      <input type="text" id="info-name" placeholder="e.g., Living Room Sensor" />
+                    </div>
+                    <div class="form-group">
+                      <label for="info-location">Physical Location:</label>
+                      <input type="text" id="info-location" placeholder="e.g., 123 Main St, Home" />
+                    </div>
+                    <div class="form-group">
+                      <label for="info-description">Description:</label>
+                      <textarea id="info-description" placeholder="Notes about this device..."></textarea>
+                    </div>
+                    <div class="form-group">
+                      <label for="info-sensor-type">Sensor Type:</label>
+                      <input type="text" id="info-sensor-type" placeholder="e.g., DHT22, BME680" />
+                    </div>
+                    <div class="form-group">
+                      <label for="info-firmware">Firmware Version:</label>
+                      <input type="text" id="info-firmware" placeholder="e.g., 1.0.0" />
+                    </div>
+                    <button type="button" id="save-device-info" class="btn btn-primary">Save Device Info</button>
+                    <span id="save-status"></span>
+                  </form>
                 </div>
               </div>
             </div>

@@ -33,6 +33,15 @@ interface ChartInstance {
   [key: string]: Chart<'line', (number | null)[], string>;
 }
 
+interface DeviceMetadata {
+  deviceId: string;
+  name?: string;
+  location?: string;
+  description?: string;
+  sensorType?: string;
+  firmwareVersion?: string;
+}
+
 interface Config {
   queryApiEndpoint?: string;
   [key: string]: any;
@@ -47,6 +56,7 @@ interface APIResponse {
 // IoT Device Dashboard
 class DeviceDashboard {
   private devices: Map<string, DeviceData>;
+  private deviceMetadata: Map<string, DeviceMetadata>;
   private selectedDeviceId: string | null;
   private charts: ChartInstance;
   private maxDataPoints: number;
@@ -62,9 +72,17 @@ class DeviceDashboard {
   private deviceMetricsEl!: HTMLElement;
   private tabsContainerEl!: HTMLElement;
   private statusBadgeEl!: HTMLElement;
+  private infoNameEl!: HTMLInputElement;
+  private infoLocationEl!: HTMLInputElement;
+  private infoDescriptionEl!: HTMLTextAreaElement;
+  private infoSensorTypeEl!: HTMLInputElement;
+  private infoFirmwareEl!: HTMLInputElement;
+  private saveDeviceInfoBtn!: HTMLElement;
+  private saveStatusEl!: HTMLElement;
 
   constructor() {
     this.devices = new Map();
+    this.deviceMetadata = new Map();
     this.selectedDeviceId = null;
     this.charts = {};
     this.maxDataPoints = 50;
@@ -139,6 +157,13 @@ class DeviceDashboard {
     this.deviceMetricsEl = this.getElement('device-metrics');
     this.tabsContainerEl = this.getElement('tabs-container');
     this.statusBadgeEl = this.getElement('connection-status');
+    this.infoNameEl = document.getElementById('info-name') as HTMLInputElement;
+    this.infoLocationEl = document.getElementById('info-location') as HTMLInputElement;
+    this.infoDescriptionEl = document.getElementById('info-description') as HTMLTextAreaElement;
+    this.infoSensorTypeEl = document.getElementById('info-sensor-type') as HTMLInputElement;
+    this.infoFirmwareEl = document.getElementById('info-firmware') as HTMLInputElement;
+    this.saveDeviceInfoBtn = this.getElement('save-device-info');
+    this.saveStatusEl = this.getElement('save-status');
   }
 
   private getElement(id: string): HTMLElement {
@@ -185,6 +210,9 @@ class DeviceDashboard {
         }
       });
     }
+
+    // Save device info button
+    this.saveDeviceInfoBtn.addEventListener('click', () => this.saveDeviceInfo());
   }
 
   private toggleDarkMode(): void {
@@ -323,6 +351,7 @@ class DeviceDashboard {
 
     if (this.queryApiEndpoint) {
       await this.loadHistoricalData(deviceId);
+      await this.loadDeviceMetadata(deviceId);
     }
 
     this.updateDeviceDisplay(deviceId);
@@ -371,6 +400,67 @@ class DeviceDashboard {
       }
     } catch (e) {
       console.warn(`Could not load historical data for ${deviceId}:`, e);
+    }
+  }
+
+  private async loadDeviceMetadata(deviceId: string): Promise<void> {
+    try {
+      const url = `${this.queryApiEndpoint}/device-metadata?deviceId=${encodeURIComponent(deviceId)}`;
+      const res = await fetch(url);
+
+      if (res.ok) {
+        const metadata: DeviceMetadata = await res.json();
+        this.deviceMetadata.set(deviceId, metadata);
+        this.displayDeviceMetadata(metadata);
+      }
+    } catch (e) {
+      console.warn(`Could not load device metadata for ${deviceId}:`, e);
+    }
+  }
+
+  private displayDeviceMetadata(metadata: DeviceMetadata): void {
+    this.infoNameEl.value = metadata.name || '';
+    this.infoLocationEl.value = metadata.location || '';
+    this.infoDescriptionEl.value = metadata.description || '';
+    this.infoSensorTypeEl.value = metadata.sensorType || '';
+    this.infoFirmwareEl.value = metadata.firmwareVersion || '';
+  }
+
+  private async saveDeviceInfo(): Promise<void> {
+    if (!this.selectedDeviceId) return;
+
+    const metadata: DeviceMetadata = {
+      deviceId: this.selectedDeviceId,
+      name: this.infoNameEl.value,
+      location: this.infoLocationEl.value,
+      description: this.infoDescriptionEl.value,
+      sensorType: this.infoSensorTypeEl.value,
+      firmwareVersion: this.infoFirmwareEl.value,
+    };
+
+    try {
+      const res = await fetch(`${this.queryApiEndpoint}/device-metadata`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(metadata),
+      });
+
+      if (res.ok) {
+        this.deviceMetadata.set(this.selectedDeviceId, metadata);
+        this.saveStatusEl.textContent = '✓ Saved successfully';
+        this.saveStatusEl.className = 'success';
+        setTimeout(() => {
+          this.saveStatusEl.textContent = '';
+          this.saveStatusEl.className = '';
+        }, 3000);
+      } else {
+        this.saveStatusEl.textContent = '✗ Save failed';
+        this.saveStatusEl.className = 'error';
+      }
+    } catch (e) {
+      console.error('Error saving device info:', e);
+      this.saveStatusEl.textContent = '✗ Error saving';
+      this.saveStatusEl.className = 'error';
     }
   }
 
