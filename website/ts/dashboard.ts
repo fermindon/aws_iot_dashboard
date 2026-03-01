@@ -348,6 +348,7 @@ class DeviceDashboard {
   private async selectDevice(deviceId: string): Promise<void> {
     this.selectedDeviceId = deviceId;
     this.renderDeviceList();
+    this.clearDeviceInfo();
 
     if (this.queryApiEndpoint) {
       await this.loadHistoricalData(deviceId);
@@ -406,16 +407,32 @@ class DeviceDashboard {
   private async loadDeviceMetadata(deviceId: string): Promise<void> {
     try {
       const url = `${this.queryApiEndpoint}/device-metadata?deviceId=${encodeURIComponent(deviceId)}`;
+      console.log('Loading metadata from:', url);
       const res = await fetch(url);
+      console.log('Metadata response status:', res.status);
 
       if (res.ok) {
         const metadata: DeviceMetadata = await res.json();
+        console.log('Metadata received:', metadata);
         this.deviceMetadata.set(deviceId, metadata);
         this.displayDeviceMetadata(metadata);
+      } else {
+        const errorText = await res.text();
+        console.warn(`Could not load device metadata (${res.status}):`, errorText);
       }
     } catch (e) {
       console.warn(`Could not load device metadata for ${deviceId}:`, e);
     }
+  }
+
+  private clearDeviceInfo(): void {
+    this.infoNameEl.value = '';
+    this.infoLocationEl.value = '';
+    this.infoDescriptionEl.value = '';
+    this.infoSensorTypeEl.value = '';
+    this.infoFirmwareEl.value = '';
+    this.saveStatusEl.textContent = '';
+    this.saveStatusEl.className = '';
   }
 
   private displayDeviceMetadata(metadata: DeviceMetadata): void {
@@ -427,7 +444,17 @@ class DeviceDashboard {
   }
 
   private async saveDeviceInfo(): Promise<void> {
-    if (!this.selectedDeviceId) return;
+    if (!this.selectedDeviceId) {
+      this.saveStatusEl.textContent = '✗ No device selected';
+      this.saveStatusEl.className = 'error';
+      return;
+    }
+
+    if (!this.queryApiEndpoint) {
+      this.saveStatusEl.textContent = '✗ API endpoint not configured';
+      this.saveStatusEl.className = 'error';
+      return;
+    }
 
     const metadata: DeviceMetadata = {
       deviceId: this.selectedDeviceId,
@@ -439,11 +466,18 @@ class DeviceDashboard {
     };
 
     try {
-      const res = await fetch(`${this.queryApiEndpoint}/device-metadata`, {
+      const url = `${this.queryApiEndpoint}/device-metadata`;
+      console.log('Saving metadata to:', url);
+      console.log('Metadata:', metadata);
+
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(metadata),
       });
+
+      const responseText = await res.text();
+      console.log('Response status:', res.status, 'body:', responseText);
 
       if (res.ok) {
         this.deviceMetadata.set(this.selectedDeviceId, metadata);
@@ -454,8 +488,10 @@ class DeviceDashboard {
           this.saveStatusEl.className = '';
         }, 3000);
       } else {
-        this.saveStatusEl.textContent = '✗ Save failed';
+        const error = responseText ? JSON.parse(responseText).error : 'Unknown error';
+        this.saveStatusEl.textContent = `✗ Save failed: ${error}`;
         this.saveStatusEl.className = 'error';
+        console.error('Save error:', error);
       }
     } catch (e) {
       console.error('Error saving device info:', e);

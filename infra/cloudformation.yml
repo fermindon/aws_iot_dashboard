@@ -495,15 +495,22 @@ Resources:
           TABLE = os.environ.get('METADATA_TABLE')
 
           def handler(event, context):
-              path = event.get('rawPath', '')
-              params = event.get('queryStringParameters', {}) or {}
-              
-              if path == '/device-metadata':
-                  device_id = params.get('deviceId')
-                  if not device_id:
-                      return {'statusCode': 400, 'body': json.dumps({'error': 'Missing deviceId'})}
+              try:
+                  path = event.get('rawPath', '')
+                  method = event.get('requestContext', {}).get('http', {}).get('method', 'UNKNOWN')
+                  params = event.get('queryStringParameters', {}) or {}
                   
-                  try:
+                  # Log for debugging
+                  print(f"Path: {path}, Method: {method}")
+                  print(f"Params: {params}")
+                  print(f"Event keys: {event.keys()}")
+                  
+                  # Handle GET /device-metadata
+                  if (path == '/device-metadata' or path.endswith('/device-metadata')) and method == 'GET':
+                      device_id = params.get('deviceId')
+                      if not device_id:
+                          return {'statusCode': 400, 'body': json.dumps({'error': 'Missing deviceId'})}
+                      
                       response = ddb.get_item(TableName=TABLE, Key={'deviceId': {'S': device_id}})
                       if 'Item' in response:
                           item = response['Item']
@@ -530,10 +537,11 @@ Resources:
                                   'firmwareVersion': ''
                               })
                           }
-                  except Exception as e:
-                      return {'statusCode': 500, 'body': json.dumps({'error': str(e)})}
-              else:
-                  return {'statusCode': 404, 'body': json.dumps({'error': 'Not found'})}
+                  else:
+                      return {'statusCode': 404, 'body': json.dumps({'error': f'Not found: {method} {path}'})}
+              except Exception as e:
+                  print(f"Error: {str(e)}")
+                  return {'statusCode': 500, 'body': json.dumps({'error': str(e)})}
       Environment:
         Variables:
           METADATA_TABLE: !Ref DeviceMetadataTable
@@ -554,13 +562,19 @@ Resources:
           TABLE = os.environ.get('METADATA_TABLE')
 
           def handler(event, context):
-              path = event.get('rawPath', '')
-              method = event.get('requestContext', {}).get('http', {}).get('method', '')
-              
-              if path == '/device-metadata' and method == 'POST':
-                  try:
+              try:
+                  path = event.get('rawPath', '')
+                  method = event.get('requestContext', {}).get('http', {}).get('method', 'UNKNOWN')
+                  
+                  # Log for debugging
+                  print(f"Path: {path}, Method: {method}")
+                  print(f"Event keys: {event.keys()}")
+                  
+                  # Handle POST to /device-metadata
+                  if (path == '/device-metadata' or path.endswith('/device-metadata')) and method == 'POST':
                       body = json.loads(event.get('body', '{}'))
                       device_id = body.get('deviceId')
+                      
                       if not device_id:
                           return {'statusCode': 400, 'body': json.dumps({'error': 'Missing deviceId'})}
                       
@@ -571,10 +585,11 @@ Resources:
                       
                       ddb.put_item(TableName=TABLE, Item=item)
                       return {'statusCode': 200, 'body': json.dumps({'success': True, 'deviceId': device_id})}
-                  except Exception as e:
-                      return {'statusCode': 500, 'body': json.dumps({'error': str(e)})}
-              else:
-                  return {'statusCode': 404, 'body': json.dumps({'error': 'Not found'})}
+                  else:
+                      return {'statusCode': 404, 'body': json.dumps({'error': f'Not found: {method} {path}'})}
+              except Exception as e:
+                  print(f"Error: {str(e)}")
+                  return {'statusCode': 500, 'body': json.dumps({'error': str(e)})}
       Environment:
         Variables:
           METADATA_TABLE: !Ref DeviceMetadataTable
