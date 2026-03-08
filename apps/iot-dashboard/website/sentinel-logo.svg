@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <style>
+      .sentinel-primary { fill: none; stroke: currentColor; stroke-width: 18; stroke-linecap: round; stroke-linejoin: round; }
+      .sentinel-accent { fill: currentColor; opacity: 0.35; }
+    </style>
+  </defs>
+  
+  <!-- Halo -->
+  <ellipse cx="256" cy="100" rx="60" ry="18" class="sentinel-primary"/>
+  
+  <!-- Head -->
+  <circle cx="256" cy="160" r="38" class="sentinel-primary"/>
+  <circle cx="256" cy="160" r="34" class="sentinel-accent"/>
+  
+  <!-- Left Wing -->
+  <path d="M210 220 C140 180, 60 170, 50 230 C40 290, 90 340, 160 310 C130 300, 80 275, 85 240 C90 210, 140 200, 210 220Z" 
+        class="sentinel-primary"/>
+  <path d="M195 260 C150 240, 90 245, 85 270 C80 290, 110 310, 155 295" 
+        class="sentinel-accent"/>
+  
+  <!-- Right Wing -->
+  <path d="M302 220 C372 180, 452 170, 462 230 C472 290, 422 340, 352 310 C382 300, 432 275, 427 240 C422 210, 372 200, 302 220Z" 
+        class="sentinel-primary"/>
+  <path d="M317 260 C362 240, 422 245, 427 270 C432 290, 402 310, 357 295" 
+        class="sentinel-accent"/>
+  
+  <!-- Body/Robe -->
+  <path d="M220 200 C220 200, 210 280, 200 340 C190 400, 180 440, 170 460 L342 460 C332 440, 322 400, 312 340 C302 280, 292 200, 292 200" 
+        class="sentinel-primary"/>
+  
+  <!-- Body fill -->
+  <path d="M228 220 C228 240, 224 300, 220 350 C215 395, 210 430, 205 455 L307 455 C302 430, 297 395, 292 350 C288 300, 284 240, 284 220 Z" 
+        class="sentinel-accent"/>
+  
+  <!-- Shield emblem (IoT sentinel monitoring) -->
+  <path d="M256 250 L275 265 L275 285 C275 300, 256 310, 256 310 C256 310, 237 300, 237 285 L237 265 Z" 
+        class="sentinel-primary"/>
+  
+  <!-- Signal/Network inside shield (4 dots representing connectivity) -->
+  <circle cx="248" cy="273" r="6" fill="currentColor" opacity="0.7"/>
+  <circle cx="264" cy="273" r="6" fill="currentColor" opacity="0.7"/>
+  <circle cx="256" cy="290" r="6" fill="currentColor" opacity="0.7"/>
+</svg>

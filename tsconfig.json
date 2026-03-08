@@ -11,9 +11,9 @@
     "resolveJsonModule": true,
     "declaration": false,
     "sourceMap": false,
-    "outDir": "./website/js",
-    "rootDir": "./website/ts"
+    "outDir": "./apps/iot-dashboard/website/js",
+    "rootDir": "./apps/iot-dashboard/website/ts"
   },
-  "include": ["website/ts/**/*.ts"],
-  "exclude": ["node_modules", "website/js"]
+  "include": ["apps/iot-dashboard/website/ts/**/*.ts"],
+  "exclude": ["node_modules", "apps/iot-dashboard/website/js"]
 }

@@ -1,0 +1,4 @@
+﻿{
+    "websocketUrl":  "wss://yzo5rqjmv9.execute-api.us-east-1.amazonaws.com/prod",
+    "queryApiEndpoint":  "https://thr22am80g.execute-api.us-east-1.amazonaws.com/api"
+}

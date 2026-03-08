@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "AWS IoT Dashboard with real-time data visualization",
   "scripts": {
-    "build": "esbuild website/ts/*.ts --bundle --outdir=website/js --minify",
-    "watch": "esbuild website/ts/*.ts --bundle --outdir=website/js --watch",
-    "serve": "npx serve website -p 3000",
+    "build": "esbuild apps/iot-dashboard/website/ts/*.ts --bundle --outdir=apps/iot-dashboard/website/js --minify",
+    "watch": "esbuild apps/iot-dashboard/website/ts/*.ts --bundle --outdir=apps/iot-dashboard/website/js --watch",
+    "serve": "npx serve apps/iot-dashboard/website -p 3000",
     "dev": "concurrently \"npm run watch\" \"npm run serve\"",
     "type-check": "tsc --noEmit"
   },

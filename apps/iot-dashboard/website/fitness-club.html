@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Severna Park Fitness Club</title>
+  <meta name="description" content="Racquetball, fitness classes, youth programs, and aquatics in Severna Park" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+    }
+
+    /* Hero Section */
+    .hero {
+      background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+      color: white;
+      text-align: center;
+      padding: 6rem 1.5rem;
+    }
+
+    .hero h1 {
+      font-size: 2.25rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .hero p {
+      font-size: 1.25rem;
+      margin-bottom: 1.5rem;
+      opacity: 0.95;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 1.5rem;
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      background: #fbbf24;
+      color: #1e40af;
+    }
+
+    .btn-primary:hover {
+      background: #f59e0b;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: #1e40af;
+      border: 2px solid white;
+    }
+
+    .btn-secondary:hover {
+      background: transparent;
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    /* Services Section */
+    .services {
+      padding: 5rem 1.5rem;
+      background: white;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .services h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 2.5rem;
+      color: #1e40af;
+    }
+
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+    }
+
+    .service-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+      background: white;
+    }
+
+    .service-card:hover {
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      transform: translateY(-4px);
+    }
+
+    .service-card h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #1e40af;
+    }
+
+    .service-card p {
+      color: #6b7280;
+      font-size: 0.95rem;
+    }
+
+    /* Testimonials Section */
+    .testimonials {
+      padding: 5rem 1.5rem;
+      background: #f3f4f6;
+    }
+
+    .testimonials-wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .testimonials h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 2.5rem;
+      color: #1e40af;
+    }
+
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+    }
+
+    .testimonial-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      background: white;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      transition: box-shadow 0.3s ease;
+    }
+
+    .testimonial-card:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .testimonial-card p:first-child {
+      font-style: italic;
+      color: #4b5563;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+
+    .testimonial-card p:last-child {
+      font-weight: 600;
+      color: #1e40af;
+    }
+
+    /* CTA / Signup Section */
+    .signup {
+      background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+      color: white;
+      padding: 5rem 1.5rem;
+      text-align: center;
+    }
+
+    .signup-wrapper {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .signup h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+    }
+
+    .signup p {
+      margin-bottom: 1.5rem;
+      font-size: 1.05rem;
+      opacity: 0.95;
+    }
+
+    .signup-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .signup-form input {
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      border: none;
+      font-size: 1rem;
+      color: #333;
+    }
+
+    .signup-form input::placeholder {
+      color: #999;
+    }
+
+    .signup-form button {
+      background: #fbbf24;
+      color: #1e40af;
+      font-weight: 600;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .signup-form button:hover {
+      background: #f59e0b;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+    }
+
+    @media (min-width: 768px) {
+      .signup-form {
+        flex-direction: row;
+      }
+
+      .signup-form input {
+        flex: 1;
+      }
+
+      .signup-form button {
+        flex: 0 1 auto;
+      }
+    }
+
+    /* Footer */
+    footer {
+      background: #1f2937;
+      color: white;
+      text-align: center;
+      padding: 1.5rem;
+    }
+
+    footer p {
+      margin: 0.5rem 0;
+      font-size: 0.9rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 1.875rem;
+      }
+
+      .hero p {
+        font-size: 1rem;
+      }
+
+      .services h2,
+      .testimonials h2,
+      .signup h2 {
+        font-size: 1.5rem;
+      }
+
+      .hero-buttons {
+        flex-direction: column;
+      }
+
+      .hero-buttons .btn {
+        width: 100%;
+        max-width: 300px;
+      }
+    }
+
+    /* Smooth scroll behavior */
+    html {
+      scroll-behavior: smooth;
+    }
+  </style>
+</head>
+<body>
+  <!-- Hero Section -->
+  <section class="hero">
+    <h1>Severna Park's Premier Fitness & Racquetball Club</h1>
+    <p>Racquetball • Fitness Classes • Youth Programs • Aquatics</p>
+    <div class="hero-buttons">
+      <a href="#signup" class="btn btn-primary">Start Your Free Trial</a>
+      <a href="#services" class="btn btn-secondary">View Class Schedule</a>
+    </div>
+  </section>
+
+  <!-- Services Section -->
+  <section id="services" class="services">
+    <h2>Our Services</h2>
+    <div class="services-grid">
+      <div class="service-card">
+        <h3>🎾 Racquetball Leagues</h3>
+        <p>Join competitive and casual racquetball leagues for all ages.</p>
+      </div>
+      <div class="service-card">
+        <h3>💪 Group Fitness Classes</h3>
+        <p>Yoga, spin, HIIT, and more to keep you active and healthy.</p>
+      </div>
+      <div class="service-card">
+        <h3>🏊 Aquatics & Swim Team</h3>
+        <p>Swimming lessons, competitive team, and open swim hours.</p>
+      </div>
+      <div class="service-card">
+        <h3>👶 Youth Programs</h3>
+        <p>Summer camps, after-school programs, and youth leagues.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials Section -->
+  <section class="testimonials">
+    <div class="testimonials-wrapper">
+      <h2>What Our Members Say</h2>
+      <div class="testimonials-grid">
+        <div class="testimonial-card">
+          <p>"Best gym experience in Severna Park! Friendly staff and great facilities."</p>
+          <p>- John D.</p>
+        </div>
+        <div class="testimonial-card">
+          <p>"My kids love the swim lessons here. Highly recommend!"</p>
+          <p>- Mary S.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA / Signup Section -->
+  <section id="signup" class="signup">
+    <div class="signup-wrapper">
+      <h2>Get Started Today!</h2>
+      <p>Sign up for a free trial and start your fitness journey with us.</p>
+      <form class="signup-form">
+        <input type="text" placeholder="Your Name" required />
+        <input type="email" placeholder="Email" required />
+        <button type="submit">Sign Up</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p>&copy; 2026 Severna Park Fitness Club</p>
+    <p>123 Main St, Severna Park, MD | (410) 555-1234</p>
+  </footer>
+
+  <script>
+    // Handle form submission
+    document.querySelector('.signup-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const name = this.querySelector('input[type="text"]').value;
+      const email = this.querySelector('input[type="email"]').value;
+      
+      alert(`Thanks for signing up, ${name}! We'll be in touch at ${email}.`);
+      this.reset();
+    });
+  </script>
+</body>
+</html>

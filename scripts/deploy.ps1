@@ -19,7 +19,7 @@ $bucket = aws cloudformation describe-stacks --stack-name $StackName --region $R
 if (-not $bucket) { throw "Could not read BucketName from stack outputs" }
 
 Write-Host "Uploading website files to s3://$bucket ..."
-Write-Host "Fetching WebSocket and Query API endpoints, writing website/config.json"
+Write-Host "Fetching WebSocket and Query API endpoints, writing apps/iot-dashboard/website/config.json"
 $ws = aws cloudformation describe-stacks --stack-name $StackName --region $Region --query "Stacks[0].Outputs[?OutputKey=='WebSocketEndpoint'].OutputValue" --output text
 $queryApi = aws cloudformation describe-stacks --stack-name $StackName --region $Region --query "Stacks[0].Outputs[?OutputKey=='QueryApiEndpoint'].OutputValue" --output text
 
@@ -32,14 +32,14 @@ if ($queryApi -and $queryApi -ne "None") {
 }
 
 if ($cfg.Count -gt 0) {
-  $cfg | ConvertTo-Json | Set-Content -Path website\config.json -Encoding UTF8
+  $cfg | ConvertTo-Json | Set-Content -Path apps\iot-dashboard\website\config.json -Encoding UTF8
 }
 
 Write-Host "Building TypeScript..."
 npm run build
 if ($LASTEXITCODE -ne 0) { throw "TypeScript build failed" }
 
-aws s3 sync website/ "s3://$bucket" --region $Region --delete
+aws s3 sync apps/iot-dashboard/website/ "s3://$bucket" --region $Region --delete
 if ($LASTEXITCODE -ne 0) { throw "s3 sync failed" }
 
 Write-Host "Fetching CloudFront domain..."
