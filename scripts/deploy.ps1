@@ -1,5 +1,6 @@
 <#
-  Deploys the CloudFormation stack and uploads website files to the created S3 bucket.
+  Deploys the CloudFormation stack and uploads all application files to the created S3 bucket.
+  Deploys both Sentinel IoT Dashboard (root) and Fitness Club (/fitness-club) to a single S3 bucket.
   Requirements: AWS CLI v2 configured with permissions to create S3, CloudFront, and CloudFormation stacks.
 #>
 
@@ -39,8 +40,19 @@ Write-Host "Building TypeScript..."
 npm run build
 if ($LASTEXITCODE -ne 0) { throw "TypeScript build failed" }
 
+Write-Host "Syncing IoT Dashboard (Sentinel) to S3..."
 aws s3 sync apps/iot-dashboard/website/ "s3://$bucket" --region $Region --delete
-if ($LASTEXITCODE -ne 0) { throw "s3 sync failed" }
+if ($LASTEXITCODE -ne 0) { throw "s3 sync (iot-dashboard) failed" }
+
+Write-Host "Syncing Fitness Club to S3..."
+aws s3 sync apps/fitness-club/website/ "s3://$bucket/fitness-club/" --region $Region --delete
+if ($LASTEXITCODE -ne 0) { throw "s3 sync (fitness-club) failed" }
+
+Write-Host "Invalidating CloudFront cache..."
+$distribution = aws cloudformation describe-stacks --stack-name $StackName --region $Region --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" --output text
+if ($distribution -and $distribution -ne "None") {
+  aws cloudfront create-invalidation --distribution-id $distribution --paths "/*" --region $Region
+}
 
 Write-Host "Fetching CloudFront domain..."
 $cf = aws cloudformation describe-stacks --stack-name $StackName --region $Region --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDomain'].OutputValue" --output text
