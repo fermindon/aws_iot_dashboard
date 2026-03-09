@@ -1,9 +1,42 @@
 const form = document.getElementById("lead-form");
 const statusEl = document.getElementById("form-status");
 const yearEl = document.getElementById("year");
+const mobileToggle = document.getElementById("mobile-toggle");
+const navLinks = document.getElementById("nav-links");
 
 yearEl.textContent = new Date().getFullYear();
 
+/* ---- Mobile menu toggle ---- */
+mobileToggle.addEventListener("click", () => {
+  navLinks.classList.toggle("open");
+  mobileToggle.setAttribute(
+    "aria-expanded",
+    navLinks.classList.contains("open")
+  );
+});
+
+/* Close mobile menu when a nav link is clicked */
+navLinks.querySelectorAll("a").forEach((link) => {
+  link.addEventListener("click", () => {
+    navLinks.classList.remove("open");
+    mobileToggle.setAttribute("aria-expanded", "false");
+  });
+});
+
+/* ---- Scroll: shrink topbar ---- */
+const topbar = document.querySelector(".topbar");
+let lastScroll = 0;
+window.addEventListener("scroll", () => {
+  const y = window.scrollY;
+  if (y > 60) {
+    topbar.style.borderBottomColor = "rgba(37,47,85,.9)";
+  } else {
+    topbar.style.borderBottomColor = "";
+  }
+  lastScroll = y;
+}, { passive: true });
+
+/* ---- Form submission ---- */
 form.addEventListener("submit", (event) => {
   event.preventDefault();
 
