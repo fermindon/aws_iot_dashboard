@@ -54,6 +54,64 @@ window.addEventListener("scroll", () => {
   lastScroll = y;
 }, { passive: true });
 
+/* ---- Intersection Observer for scroll animations ---- */
+const observerOptions = {
+  threshold: 0.1,
+  rootMargin: "0px 0px -50px 0px"
+};
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    if (entry.isIntersecting) {
+      entry.target.style.animation = "none";
+      setTimeout(() => {
+        entry.target.style.animation = "";
+      }, 10);
+      observer.unobserve(entry.target);
+    }
+  });
+}, observerOptions);
+
+/* Observe animated elements */
+document.querySelectorAll(
+  ".service-card, .pricing-card, .testimonial-card, .process-step, .portfolio-item, .stat, .badge"
+).forEach((el) => {
+  observer.observe(el);
+});
+
+/* ---- Animated stat counters ---- */
+const animateCounter = (el) => {
+  const target = parseInt(el.textContent, 10);
+  let current = 0;
+  const increment = Math.ceil(target / 30);
+  
+  const counter = setInterval(() => {
+    current += increment;
+    if (current >= target) {
+      el.textContent = target;
+      clearInterval(counter);
+    } else {
+      el.textContent = current;
+    }
+  }, 50);
+};
+
+const statObserver = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    if (entry.isIntersecting) {
+      const strong = entry.target.querySelector("strong");
+      if (strong && /^\d+/.test(strong.textContent)) {
+        animateCounter(strong);
+      }
+      statObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.3 });
+
+document.querySelectorAll(".stat").forEach((stat) => {
+  statObserver.observe(stat);
+});
+
 /* ---- Form submission ---- */
 form.addEventListener("submit", (event) => {
   event.preventDefault();
