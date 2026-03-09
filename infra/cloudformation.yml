@@ -27,7 +27,7 @@ Resources:
             Action: s3:GetObject
             Resource: !Sub arn:aws:s3:::${WebsiteBucket}/*
 
-  CloudFrontDistribution:
+  MainCloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
       DistributionConfig:
@@ -39,6 +39,32 @@ Resources:
               OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${OriginAccessIdentity}
         DefaultCacheBehavior:
           TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+        DefaultRootObject: index.html
+
+  AgencyCloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Origins:
+          - Id: AgencyS3Origin
+            DomainName: !GetAtt WebsiteBucket.RegionalDomainName
+            OriginPath: /web-agency
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${OriginAccessIdentity}
+        DefaultCacheBehavior:
+          TargetOriginId: AgencyS3Origin
           ViewerProtocolPolicy: redirect-to-https
           AllowedMethods:
             - GET
@@ -698,8 +724,24 @@ Outputs:
     Value: !Ref WebsiteBucket
 
   CloudFrontDomain:
-    Description: CloudFront distribution domain name
-    Value: !GetAtt CloudFrontDistribution.DomainName
+    Description: Main CloudFront distribution domain name for Sentinel
+    Value: !GetAtt MainCloudFrontDistribution.DomainName
+
+  MainCloudFrontDomain:
+    Description: Main CloudFront distribution domain name for Sentinel
+    Value: !GetAtt MainCloudFrontDistribution.DomainName
+
+  MainCloudFrontDistributionId:
+    Description: Main CloudFront distribution ID for Sentinel
+    Value: !Ref MainCloudFrontDistribution
+
+  AgencyCloudFrontDomain:
+    Description: Agency CloudFront distribution domain name for web-agency
+    Value: !GetAtt AgencyCloudFrontDistribution.DomainName
+
+  AgencyCloudFrontDistributionId:
+    Description: Agency CloudFront distribution ID for web-agency
+    Value: !Ref AgencyCloudFrontDistribution
 
   WebSocketEndpoint:
     Description: WebSocket API endpoint URL for clients
