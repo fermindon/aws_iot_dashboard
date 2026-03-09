@@ -193,6 +193,11 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: arn:aws:logs:*:*:*
+              - Effect: Allow
+                Action:
+                  - ses:SendEmail
+                  - ses:SendRawEmail
+                Resource: '*'
 
   ConnectionHandlerFunction:
     Type: AWS::Lambda::Function
@@ -644,7 +649,7 @@ Resources:
       Handler: index.handler
       Runtime: python3.9
       Role: !GetAtt LambdaExecutionRole.Arn
-      Timeout: 10
+      Timeout: 30
       Code:
         ZipFile: |
           import json
@@ -654,7 +659,77 @@ Resources:
           import time
 
           ddb = boto3.client('dynamodb')
+          ses = boto3.client('ses')
           TABLE = os.environ.get('INQUIRIES_TABLE')
+          SENDER_EMAIL = 'inquiry@angelorumsolutions.com'
+
+          def send_customer_email(customer_name, customer_email):
+              """Send confirmation email to customer"""
+              try:
+                  ses.send_email(
+                      Source=SENDER_EMAIL,
+                      Destination={'ToAddresses': [customer_email]},
+                      Message={
+                          'Subject': {'Data': 'We Received Your Inquiry - Angelorum Solutions'},
+                          'Body': {
+                              'Html': {
+                                  'Data': f"""
+                                  <html>
+                                    <body style="font-family: Inter, sans-serif; color: #333;">
+                                      <h2>Thank you, {customer_name}!</h2>
+                                      <p>We've received your inquiry and will review it shortly.</p>
+                                      <p>Our team typically responds within 24 hours.</p>
+                                      <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                                      <p style="color: #666; font-size: 12px;">
+                                        <strong>Angelorum Solutions</strong><br>
+                                        Professional Websites for Small Businesses<br>
+                                        inquiry@angelorumsolutions.com
+                                      </p>
+                                    </body>
+                                  </html>
+                                  """
+                              }
+                          }
+                      }
+                  )
+                  return True
+              except Exception as e:
+                  print(f"Error sending customer email: {str(e)}")
+                  return False
+
+          def send_notification_email(inquiry_id, business_name, name, email, phone, details):
+              """Send notification email to Angelorum"""
+              try:
+                  ses.send_email(
+                      Source=SENDER_EMAIL,
+                      Destination={'ToAddresses': [SENDER_EMAIL]},
+                      Message={
+                          'Subject': {'Data': f'New Inquiry: {business_name}'},
+                          'Body': {
+                              'Html': {
+                                  'Data': f"""
+                                  <html>
+                                    <body style="font-family: Inter, sans-serif;">
+                                      <h3>New Inquiry Received</h3>
+                                      <p><strong>ID:</strong> {inquiry_id}</p>
+                                      <p><strong>Business Name:</strong> {business_name}</p>
+                                      <p><strong>Contact Name:</strong> {name}</p>
+                                      <p><strong>Email:</strong> {email}</p>
+                                      <p><strong>Phone:</strong> {phone if phone else 'Not provided'}</p>
+                                      <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                                      <h4>Project Details:</h4>
+                                      <p>{details.replace(chr(10), '<br>')}</p>
+                                    </body>
+                                  </html>
+                                  """
+                              }
+                          }
+                      }
+                  )
+                  return True
+              except Exception as e:
+                  print(f"Error sending notification email: {str(e)}")
+                  return False
 
           def handler(event, context):
               try:
@@ -709,6 +784,10 @@ Resources:
                   
                   # Store in DynamoDB
                   ddb.put_item(TableName=TABLE, Item=item)
+                  
+                  # Send emails
+                  send_customer_email(name, email)
+                  send_notification_email(inquiry_id, business_name, name, email, body.get('phone', ''), details)
                   
                   return {
                       'statusCode': 200,
