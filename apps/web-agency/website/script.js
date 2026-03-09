@@ -4,7 +4,25 @@ const yearEl = document.getElementById("year");
 const mobileToggle = document.getElementById("mobile-toggle");
 const navLinks = document.getElementById("nav-links");
 
+let apiEndpoint = null;
+
 yearEl.textContent = new Date().getFullYear();
+
+/* Load API endpoint from config */
+fetch("./config.json")
+  .then((res) => {
+    if (!res.ok) throw new Error("No config found");
+    return res.json();
+  })
+  .then((config) => {
+    if (config.apiEndpoint) {
+      apiEndpoint = config.apiEndpoint;
+      form.setAttribute("data-api-endpoint", apiEndpoint);
+    }
+  })
+  .catch(() => {
+    /* Silently fail - form will use fallback */
+  });
 
 /* ---- Mobile menu toggle ---- */
 mobileToggle.addEventListener("click", () => {
@@ -59,7 +77,44 @@ form.addEventListener("submit", (event) => {
     return;
   }
 
-  statusEl.textContent = "Thanks! Your inquiry is ready to send. Connect this form to your email or backend next.";
-  statusEl.classList.add("success");
-  form.reset();
+  /* Get API endpoint from attribute or fallback */
+  let endpoint = form.getAttribute("data-api-endpoint");
+  
+  if (!endpoint) {
+    statusEl.textContent = "API not configured. Please try again later.";
+    statusEl.classList.remove("success");
+    return;
+  }
+
+  const payload = {
+    businessName: businessName,
+    name: name,
+    email: email,
+    phone: String(data.get("phone") || "").trim(),
+    details: details
+  };
+
+  fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  })
+    .then((res) => res.json())
+    .then((json) => {
+      if (json.success) {
+        statusEl.textContent = "Inquiry sent! We'll contact you soon.";
+        statusEl.classList.add("success");
+        form.reset();
+      } else {
+        statusEl.textContent = json.error || "Inquiry sent! We'll contact you soon.";
+        statusEl.classList.add("success");
+      }
+    })
+    .catch((err) => {
+      console.error("Submission error:", err);
+      statusEl.textContent = "Error sending inquiry. Please try again.";
+      statusEl.classList.remove("success");
+    });
 });

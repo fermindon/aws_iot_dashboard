@@ -37,6 +37,16 @@ if ($cfg.Count -gt 0) {
   $cfg | ConvertTo-Json | Set-Content -Path apps\iot-dashboard\website\config.json -Encoding UTF8
 }
 
+Write-Host "Creating config for Web Agency with API endpoint..."
+$agencyConfig = @{}
+if ($queryApi -and $queryApi -ne "None") {
+  $agencyConfig.apiEndpoint = $queryApi + "/inquiries"
+}
+
+if ($agencyConfig.Count -gt 0) {
+  $agencyConfig | ConvertTo-Json | Set-Content -Path apps\web-agency\website\config.json -Encoding UTF8
+}
+
 Write-Host "Building TypeScript..."
 npm run build
 if ($LASTEXITCODE -ne 0) { throw "TypeScript build failed" }

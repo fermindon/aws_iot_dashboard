@@ -3,187 +3,400 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Angelorum Solutions | Websites for Small Businesses</title>
-  <meta name="description" content="Professional websites for small businesses. Strategy, design, copy, SEO, launch, and ongoing support in one service." />
+  <title>Angelorum Solutions | Professional Websites for Small Businesses</title>
+  <meta name="description" content="We design and build stunning, high-converting websites for small businesses. Strategy, design, copywriting, SEO, launch, and ongoing support — all in one service." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="topbar">
+
+  <!-- ===== NAV ===== -->
+  <header class="topbar" id="top">
     <div class="container nav-wrap">
-      <a class="brand" href="#home">
+      <a class="brand" href="#top">
         <span class="brand-mark" aria-hidden="true">
           <img src="sentinel-logo.svg" alt="" class="brand-logo" />
         </span>
-        <span>Angelorum Solutions</span>
+        <span class="brand-text">Angelorum<span class="brand-accent"> Solutions</span></span>
       </a>
-      <nav class="nav-links">
+      <nav class="nav-links" id="nav-links">
         <a href="#services">Services</a>
+        <a href="#work">Work</a>
         <a href="#process">Process</a>
         <a href="#pricing">Pricing</a>
         <a href="#contact">Contact</a>
       </nav>
-      <a class="btn btn-sm" href="#contact">Book a Call</a>
+      <button class="mobile-toggle" id="mobile-toggle" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <a class="btn btn-sm btn-glow" href="#contact">Get Started</a>
     </div>
   </header>
 
-  <main id="home">
-    <section class="hero">
-      <div class="container hero-grid">
-        <div>
-          <p class="eyebrow">Done-for-you website service</p>
-          <h1>We build professional websites for small businesses that need to be found and trusted.</h1>
-          <p class="lead">
-            From strategy and copywriting to design, launch, and maintenance — we handle everything so you can focus on serving your customers.
-          </p>
-          <div class="hero-actions">
-            <a class="btn" href="#contact">Start Your Project</a>
-            <a class="btn btn-ghost" href="#pricing">See Packages</a>
-          </div>
-          <ul class="trust-points">
-            <li>Fast turnaround</li>
-            <li>Mobile-first design</li>
-            <li>SEO-ready pages</li>
-          </ul>
-        </div>
+  <main>
 
-        <aside class="hero-card">
-          <h2>What you get</h2>
-          <ul>
-            <li>Custom homepage + service pages</li>
-            <li>On-brand design and clear messaging</li>
-            <li>Lead capture forms and CTAs</li>
-            <li>Google Business Profile integration</li>
-            <li>Analytics and performance setup</li>
-            <li>Post-launch support</li>
-          </ul>
-        </aside>
+    <!-- ===== HERO ===== -->
+    <section class="hero">
+      <div class="hero-bg">
+        <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1400&q=80" alt="Modern workspace" class="hero-bg-img" />
+        <div class="hero-overlay"></div>
+      </div>
+      <div class="container hero-content">
+        <p class="badge">Websites That Convert</p>
+        <h1>We build websites that help small businesses <em>grow</em>.</h1>
+        <p class="lead">
+          From strategy to launch and beyond — we handle design, copy, SEO, and hosting so you can focus on your customers.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-lg" href="#contact">Start Your Project &rarr;</a>
+          <a class="btn btn-lg btn-outline" href="#work">See Our Work</a>
+        </div>
+        <div class="hero-stats">
+          <div class="stat"><strong>50+</strong><span>Websites Launched</span></div>
+          <div class="stat"><strong>98%</strong><span>Client Satisfaction</span></div>
+          <div class="stat"><strong>2 Weeks</strong><span>Avg. Turnaround</span></div>
+        </div>
       </div>
     </section>
 
+    <!-- ===== LOGO BAR ===== -->
+    <section class="logo-bar">
+      <div class="container">
+        <p class="logo-bar-label">Trusted by small businesses across industries</p>
+        <div class="logo-bar-row">
+          <span>Restaurants</span>
+          <span>Home Services</span>
+          <span>Health &amp; Wellness</span>
+          <span>Retail &amp; E-Commerce</span>
+          <span>Professional Services</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SERVICES ===== -->
     <section id="services" class="section">
       <div class="container">
-        <p class="eyebrow">Services</p>
-        <h2>Everything needed to launch a high-quality business website</h2>
+        <div class="section-header">
+          <p class="eyebrow">What We Do</p>
+          <h2>Everything you need to succeed online</h2>
+          <p class="section-sub">We offer a complete, done-for-you website service — no tech knowledge required.</p>
+        </div>
         <div class="grid cards-3">
-          <article class="card">
-            <h3>Website Design & Build</h3>
-            <p>Modern, conversion-focused websites tailored to your business goals and customer journey.</p>
+          <article class="service-card">
+            <div class="service-img">
+              <img src="https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?w=600&q=80" alt="Web design on screen" loading="lazy" />
+            </div>
+            <div class="service-body">
+              <h3>Website Design &amp; Build</h3>
+              <p>Custom, mobile-first websites crafted around your brand and optimized for conversions.</p>
+            </div>
           </article>
-          <article class="card">
-            <h3>Copywriting & SEO</h3>
-            <p>Clear messaging and search-friendly pages so prospects understand your value and can find you online.</p>
+          <article class="service-card">
+            <div class="service-img">
+              <img src="https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?w=600&q=80" alt="SEO analytics on laptop" loading="lazy" />
+            </div>
+            <div class="service-body">
+              <h3>Copywriting &amp; SEO</h3>
+              <p>Clear, persuasive messaging and search-optimized pages so customers find and trust you.</p>
+            </div>
           </article>
-          <article class="card">
-            <h3>Hosting & Maintenance</h3>
-            <p>Secure hosting, updates, and ongoing support so your website stays fast, current, and reliable.</p>
+          <article class="service-card">
+            <div class="service-img">
+              <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&q=80" alt="Server hosting infrastructure" loading="lazy" />
+            </div>
+            <div class="service-body">
+              <h3>Hosting &amp; Maintenance</h3>
+              <p>Reliable hosting, security updates, and ongoing support so your site stays fast and secure.</p>
+            </div>
           </article>
         </div>
       </div>
     </section>
 
-    <section id="process" class="section section-muted">
+    <!-- ===== WORK / PORTFOLIO ===== -->
+    <section id="work" class="section section-dark">
       <div class="container">
-        <p class="eyebrow">Process</p>
-        <h2>A simple 4-step process</h2>
-        <div class="grid cards-4 steps">
-          <article class="card"><h3>1. Discovery</h3><p>We learn about your business, services, and ideal customers.</p></article>
-          <article class="card"><h3>2. Strategy</h3><p>We define structure, messaging, and design direction before building.</p></article>
-          <article class="card"><h3>3. Build</h3><p>We design and develop your site with responsive layout and lead capture.</p></article>
-          <article class="card"><h3>4. Launch</h3><p>We publish, test, and support your website after it goes live.</p></article>
+        <div class="section-header light">
+          <p class="eyebrow">Our Work</p>
+          <h2>Websites we've built for businesses like yours</h2>
+        </div>
+        <div class="grid cards-2 portfolio-grid">
+          <figure class="portfolio-item">
+            <img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=700&q=80" alt="Local bakery website" loading="lazy" />
+            <figcaption>
+              <h3>Local Bakery</h3>
+              <p>E-commerce site with online ordering, menu, and Google integration.</p>
+            </figcaption>
+          </figure>
+          <figure class="portfolio-item">
+            <img src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=700&q=80" alt="Home services website" loading="lazy" />
+            <figcaption>
+              <h3>Home Services Co.</h3>
+              <p>Lead-gen landing page with booking forms and service area maps.</p>
+            </figcaption>
+          </figure>
+          <figure class="portfolio-item">
+            <img src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=700&q=80" alt="Fitness studio website" loading="lazy" />
+            <figcaption>
+              <h3>Fitness Studio</h3>
+              <p>Class schedule, membership signup, and trainer profiles.</p>
+            </figcaption>
+          </figure>
+          <figure class="portfolio-item">
+            <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=700&q=80" alt="Consulting firm website" loading="lazy" />
+            <figcaption>
+              <h3>Consulting Firm</h3>
+              <p>Professional services site with case studies and contact funnels.</p>
+            </figcaption>
+          </figure>
         </div>
       </div>
     </section>
 
-    <section id="pricing" class="section">
+    <!-- ===== PROCESS ===== -->
+    <section id="process" class="section">
       <div class="container">
-        <p class="eyebrow">Pricing</p>
-        <h2>Packages for different business stages</h2>
+        <div class="section-header">
+          <p class="eyebrow">How It Works</p>
+          <h2>From idea to launch in 4 simple steps</h2>
+        </div>
+        <div class="process-timeline">
+          <article class="process-step">
+            <div class="step-number">01</div>
+            <div class="step-content">
+              <h3>Discovery Call</h3>
+              <p>We learn about your business, goals, audience, and competitors in a free 30-minute call.</p>
+            </div>
+            <div class="step-img">
+              <img src="https://images.unsplash.com/photo-1553877522-43269d4ea984?w=400&q=80" alt="Discovery meeting" loading="lazy" />
+            </div>
+          </article>
+          <article class="process-step">
+            <div class="step-number">02</div>
+            <div class="step-content">
+              <h3>Strategy &amp; Wireframes</h3>
+              <p>We map out your site structure, write compelling copy, and create design mockups for approval.</p>
+            </div>
+            <div class="step-img">
+              <img src="https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=400&q=80" alt="Wireframe planning" loading="lazy" />
+            </div>
+          </article>
+          <article class="process-step">
+            <div class="step-number">03</div>
+            <div class="step-content">
+              <h3>Design &amp; Development</h3>
+              <p>We build your website with responsive design, fast performance, and SEO best practices baked in.</p>
+            </div>
+            <div class="step-img">
+              <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&q=80" alt="Development work" loading="lazy" />
+            </div>
+          </article>
+          <article class="process-step">
+            <div class="step-number">04</div>
+            <div class="step-content">
+              <h3>Launch &amp; Support</h3>
+              <p>We go live, set up analytics, and provide ongoing maintenance so everything keeps running smoothly.</p>
+            </div>
+            <div class="step-img">
+              <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=400&q=80" alt="Team launch celebration" loading="lazy" />
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PRICING ===== -->
+    <section id="pricing" class="section section-muted">
+      <div class="container">
+        <div class="section-header">
+          <p class="eyebrow">Pricing</p>
+          <h2>Simple, transparent packages</h2>
+          <p class="section-sub">No hidden fees. Pick the plan that fits your business stage.</p>
+        </div>
         <div class="grid cards-3 pricing-grid">
-          <article class="card pricing-card">
-            <p class="plan">Starter</p>
-            <p class="price">$900</p>
+          <article class="pricing-card">
+            <div class="pricing-header">
+              <p class="plan">Starter</p>
+              <p class="price">$900</p>
+              <p class="price-note">one-time</p>
+            </div>
             <ul>
-              <li>1–3 pages</li>
-              <li>Mobile responsive</li>
-              <li>Basic SEO setup</li>
+              <li>1 – 3 pages</li>
+              <li>Mobile responsive design</li>
+              <li>Basic on-page SEO</li>
               <li>Contact form</li>
+              <li>2 rounds of revisions</li>
             </ul>
+            <a class="btn btn-block" href="#contact">Choose Starter</a>
           </article>
-          <article class="card pricing-card featured">
-            <p class="plan">Growth</p>
-            <p class="price">$1,900</p>
+          <article class="pricing-card featured">
+            <div class="pricing-badge">Most Popular</div>
+            <div class="pricing-header">
+              <p class="plan">Growth</p>
+              <p class="price">$1,900</p>
+              <p class="price-note">one-time</p>
+            </div>
             <ul>
               <li>Up to 6 pages</li>
-              <li>Copywriting support</li>
-              <li>On-page SEO</li>
-              <li>Analytics + conversion tracking</li>
+              <li>Professional copywriting</li>
+              <li>Advanced SEO setup</li>
+              <li>Analytics &amp; conversion tracking</li>
+              <li>Google Business integration</li>
+              <li>Unlimited revisions (30 days)</li>
             </ul>
+            <a class="btn btn-block btn-glow" href="#contact">Choose Growth</a>
           </article>
-          <article class="card pricing-card">
-            <p class="plan">Premium</p>
-            <p class="price">$3,200</p>
+          <article class="pricing-card">
+            <div class="pricing-header">
+              <p class="plan">Premium</p>
+              <p class="price">$3,200</p>
+              <p class="price-note">one-time + optional retainer</p>
+            </div>
             <ul>
-              <li>Custom features</li>
-              <li>Advanced integrations</li>
+              <li>Unlimited pages</li>
+              <li>Custom functionality</li>
+              <li>E-commerce or booking</li>
               <li>Priority support</li>
-              <li>Monthly optimization</li>
+              <li>Monthly optimization reports</li>
+              <li>Dedicated account manager</li>
             </ul>
+            <a class="btn btn-block" href="#contact">Choose Premium</a>
           </article>
         </div>
       </div>
     </section>
 
-    <section class="section section-muted">
-      <div class="container testimonial-wrap">
-        <p class="eyebrow">Client feedback</p>
-        <blockquote>
-          “Angelorum Solutions helped us look credible online and brought in new leads within the first month.”
-        </blockquote>
-        <p class="quote-by">— Local Home Services Owner</p>
+    <!-- ===== TESTIMONIALS ===== -->
+    <section class="section">
+      <div class="container">
+        <div class="section-header">
+          <p class="eyebrow">Client Stories</p>
+          <h2>What our clients say</h2>
+        </div>
+        <div class="grid cards-3 testimonial-grid">
+          <blockquote class="testimonial-card">
+            <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+            <p>"They made the entire process painless. Our new website brought in 3x more leads in the first month."</p>
+            <footer>
+              <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&q=80" alt="Client" loading="lazy" class="avatar" />
+              <div><strong>James R.</strong><span>Home Services Owner</span></div>
+            </footer>
+          </blockquote>
+          <blockquote class="testimonial-card">
+            <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+            <p>"Professional, fast, and they actually listened. Our site looks amazing and customers love it."</p>
+            <footer>
+              <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&q=80" alt="Client" loading="lazy" class="avatar" />
+              <div><strong>Maria S.</strong><span>Bakery Owner</span></div>
+            </footer>
+          </blockquote>
+          <blockquote class="testimonial-card">
+            <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+            <p>"We went from no online presence to ranking on Google in weeks. Best investment we've made."</p>
+            <footer>
+              <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&q=80" alt="Client" loading="lazy" class="avatar" />
+              <div><strong>David L.</strong><span>Consulting Firm</span></div>
+            </footer>
+          </blockquote>
+        </div>
       </div>
     </section>
 
+    <!-- ===== CTA BANNER ===== -->
+    <section class="cta-banner">
+      <div class="cta-bg">
+        <img src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1400&q=80" alt="Office collaboration" class="cta-bg-img" loading="lazy" />
+        <div class="cta-overlay"></div>
+      </div>
+      <div class="container cta-content">
+        <h2>Ready to get your business online?</h2>
+        <p>Book a free consultation and get a custom proposal within 24 hours.</p>
+        <a class="btn btn-lg btn-white" href="#contact">Book Your Free Call &rarr;</a>
+      </div>
+    </section>
+
+    <!-- ===== CONTACT ===== -->
     <section id="contact" class="section">
       <div class="container contact-grid">
-        <div>
-          <p class="eyebrow">Contact</p>
+        <div class="contact-info">
+          <p class="eyebrow">Let's Talk</p>
           <h2>Tell us about your business</h2>
-          <p>Share your goals and we’ll send a clear plan, timeline, and quote.</p>
+          <p>Share a few details and we'll send you a custom plan, timeline, and transparent quote — no obligation.</p>
           <ul class="contact-points">
-            <li>Email: hello@angelorumsolutions.com</li>
-            <li>Response time: within 1 business day</li>
-            <li>Service area: local + remote</li>
+            <li>
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              hello@angelorumsolutions.com
+            </li>
+            <li>
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Response within 1 business day
+            </li>
+            <li>
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              Serving local &amp; remote clients
+            </li>
           </ul>
+          <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=500&q=80" alt="Team working together" class="contact-photo" loading="lazy" />
         </div>
 
-        <form id="lead-form" class="contact-form" novalidate>
+        <form id="lead-form" class="contact-form" data-api-endpoint="/api/inquiries" novalidate>
           <label>
-            Business name
-            <input type="text" name="businessName" required />
+            <span class="label-text">Business Name</span>
+            <input type="text" name="businessName" placeholder="e.g. Mike's Plumbing" required />
           </label>
           <label>
-            Your name
-            <input type="text" name="name" required />
+            <span class="label-text">Your Name</span>
+            <input type="text" name="name" placeholder="Full name" required />
           </label>
           <label>
-            Email
-            <input type="email" name="email" required />
+            <span class="label-text">Email</span>
+            <input type="email" name="email" placeholder="you@business.com" required />
           </label>
           <label>
-            What do you need?
-            <textarea name="details" rows="4" required></textarea>
+            <span class="label-text">Phone <span class="optional">(optional)</span></span>
+            <input type="tel" name="phone" placeholder="(555) 123-4567" />
           </label>
-          <button type="submit" class="btn">Send Inquiry</button>
+          <label>
+            <span class="label-text">Tell us about your project</span>
+            <textarea name="details" rows="4" placeholder="What kind of website do you need? Any features or inspiration?" required></textarea>
+          </label>
+          <button type="submit" class="btn btn-lg btn-block btn-glow">Send Inquiry &rarr;</button>
           <p id="form-status" class="form-status" aria-live="polite"></p>
         </form>
       </div>
     </section>
   </main>
 
+  <!-- ===== FOOTER ===== -->
   <footer class="footer">
-    <div class="container footer-wrap">
-      <p>© <span id="year"></span> Angelorum Solutions. All rights reserved.</p>
-      <a href="#home">Back to top</a>
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="#top">
+          <span class="brand-mark" aria-hidden="true">
+            <img src="sentinel-logo.svg" alt="" class="brand-logo" />
+          </span>
+          <span class="brand-text">Angelorum<span class="brand-accent"> Solutions</span></span>
+        </a>
+        <p>Professional websites for small businesses that need to be found and trusted.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="#services">Services</a>
+        <a href="#work">Our Work</a>
+        <a href="#process">Process</a>
+        <a href="#pricing">Pricing</a>
+      </div>
+      <div class="footer-col">
+        <h4>Resources</h4>
+        <a href="#contact">Contact Us</a>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <p>&copy; <span id="year"></span> Angelorum Solutions. All rights reserved.</p>
     </div>
   </footer>
 

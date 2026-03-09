@@ -118,6 +118,24 @@ Resources:
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
 
+  InquiriesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: inquiryId
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: N
+      KeySchema:
+        - AttributeName: inquiryId
+          KeyType: HASH
+        - AttributeName: createdAt
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
   WebSocketApi:
     Type: AWS::ApiGatewayV2::Api
     Properties:
@@ -620,6 +638,108 @@ Resources:
         Variables:
           METADATA_TABLE: !Ref DeviceMetadataTable
 
+  InquiryFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.9
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 10
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import os
+          import uuid
+          import time
+
+          ddb = boto3.client('dynamodb')
+          TABLE = os.environ.get('INQUIRIES_TABLE')
+
+          def handler(event, context):
+              try:
+                  method = event.get('requestContext', {}).get('http', {}).get('method', 'UNKNOWN')
+                  
+                  # Only handle POST requests
+                  if method != 'POST':
+                      return {
+                          'statusCode': 405,
+                          'body': json.dumps({'error': 'Method not allowed'}),
+                          'headers': {'Content-Type': 'application/json'}
+                      }
+                  
+                  # Parse request body
+                  body = json.loads(event.get('body', '{}'))
+                  
+                  # Validate required fields
+                  required_fields = ['businessName', 'name', 'email', 'details']
+                  missing = [f for f in required_fields if not body.get(f)]
+                  
+                  if missing:
+                      return {
+                          'statusCode': 400,
+                          'body': json.dumps({'error': f'Missing required fields: {", ".join(missing)}'}),
+                          'headers': {'Content-Type': 'application/json'}
+                      }
+                  
+                  # Basic email validation
+                  email = body.get('email', '').strip()
+                  if '@' not in email or '.' not in email.split('@')[1]:
+                      return {
+                          'statusCode': 400,
+                          'body': json.dumps({'error': 'Invalid email address'}),
+                          'headers': {'Content-Type': 'application/json'}
+                      }
+                  
+                  # Create inquiry record
+                  inquiry_id = str(uuid.uuid4())
+                  created_at = int(time.time() * 1000)
+                  ttl = int(time.time()) + (90 * 24 * 60 * 60)  # 90 days
+                  
+                  item = {
+                      'inquiryId': {'S': inquiry_id},
+                      'createdAt': {'N': str(created_at)},
+                      'businessName': {'S': str(body.get('businessName', ''))},
+                      'name': {'S': str(body.get('name', ''))},
+                      'email': {'S': str(body.get('email', ''))},
+                      'phone': {'S': str(body.get('phone', ''))},
+                      'details': {'S': str(body.get('details', ''))},
+                      'ttl': {'N': str(ttl)}
+                  }
+                  
+                  # Store in DynamoDB
+                  ddb.put_item(TableName=TABLE, Item=item)
+                  
+                  return {
+                      'statusCode': 200,
+                      'body': json.dumps({
+                          'success': True,
+                          'message': 'Inquiry received! We will contact you soon.',
+                          'inquiryId': inquiry_id
+                      }),
+                      'headers': {
+                          'Content-Type': 'application/json',
+                          'Access-Control-Allow-Origin': '*'
+                      }
+                  }
+              
+              except json.JSONDecodeError:
+                  return {
+                      'statusCode': 400,
+                      'body': json.dumps({'error': 'Invalid JSON in request body'}),
+                      'headers': {'Content-Type': 'application/json'}
+                  }
+              except Exception as e:
+                  print(f"Error handling inquiry: {str(e)}")
+                  return {
+                      'statusCode': 500,
+                      'body': json.dumps({'error': 'Internal server error'}),
+                      'headers': {'Content-Type': 'application/json'}
+                  }
+      Environment:
+        Variables:
+          INQUIRIES_TABLE: !Ref InquiriesTable
+
   QueryHttpApi:
     Type: AWS::ApiGatewayV2::Api
     Properties:
@@ -658,6 +778,14 @@ Resources:
       IntegrationUri: !GetAtt UpdateDeviceMetadataFunction.Arn
       PayloadFormatVersion: '2.0'
 
+  InquiryIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt InquiryFunction.Arn
+      PayloadFormatVersion: '2.0'
+
   QueryDevicesRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -686,6 +814,13 @@ Resources:
       RouteKey: 'POST /device-metadata'
       Target: !Sub integrations/${UpdateMetadataIntegration}
 
+  InquiryRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'POST /inquiries'
+      Target: !Sub integrations/${InquiryIntegration}
+
   QueryApiStage:
     Type: AWS::ApiGatewayV2::Stage
     Properties:
@@ -713,6 +848,14 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref UpdateDeviceMetadataFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${QueryHttpApi}/*/*
+
+  InquiryLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref InquiryFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${QueryHttpApi}/*/*
