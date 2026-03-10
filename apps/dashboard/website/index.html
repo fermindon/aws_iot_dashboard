@@ -328,6 +328,82 @@
             table { font-size: 0.82rem; }
             th, td { padding: 0.6rem 0.75rem; }
         }
+
+        /* ── Modal Tabs ─────────────────────────── */
+        .modal-tabs {
+            display: flex; gap: 0; border-bottom: 2px solid var(--border);
+            margin: -1.5rem -1.5rem 1.5rem -1.5rem; padding: 0 1.5rem;
+            overflow-x: auto;
+        }
+        .modal-tab {
+            padding: 0.75rem 1.1rem; font-size: 0.82rem; font-weight: 600;
+            color: var(--text-light); cursor: pointer; border-bottom: 2px solid transparent;
+            margin-bottom: -2px; white-space: nowrap; transition: all 0.15s;
+            user-select: none;
+        }
+        .modal-tab:hover { color: var(--text); }
+        .modal-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* ── Section toggles ────────────────────── */
+        .section-toggles { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .section-toggle {
+            display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem;
+            border: 1px solid var(--border); border-radius: 20px; font-size: 0.8rem;
+            cursor: pointer; user-select: none; transition: all 0.15s;
+            background: white; color: var(--text-light); font-weight: 500;
+        }
+        .section-toggle:hover { border-color: var(--primary); }
+        .section-toggle.active { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+        .section-toggle input { display: none; }
+
+        /* ── Repeater fields ────────────────────── */
+        .repeater { display: flex; flex-direction: column; gap: 0.75rem; }
+        .repeater-item {
+            display: flex; gap: 0.5rem; align-items: flex-start;
+            padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px;
+            background: #fafbfc;
+        }
+        .repeater-item .repeater-fields { flex: 1; display: flex; flex-direction: column; gap: 0.4rem; }
+        .repeater-item .repeater-fields input,
+        .repeater-item .repeater-fields textarea {
+            width: 100%; padding: 0.4rem 0.6rem; border: 1px solid var(--border);
+            border-radius: 6px; font-size: 0.82rem; font-family: inherit;
+        }
+        .repeater-item .repeater-fields input:focus,
+        .repeater-item .repeater-fields textarea:focus { outline: none; border-color: var(--primary); }
+        .repeater-remove {
+            background: none; border: none; color: var(--error); cursor: pointer;
+            font-size: 1.1rem; padding: 0.2rem; flex-shrink: 0; margin-top: 0.1rem;
+        }
+        .repeater-remove:hover { opacity: 0.7; }
+        .repeater-add {
+            display: inline-flex; align-items: center; gap: 0.3rem;
+            font-size: 0.82rem; color: var(--primary); cursor: pointer;
+            font-weight: 600; padding: 0.3rem 0;
+            background: none; border: none;
+        }
+        .repeater-add:hover { text-decoration: underline; }
+
+        /* ── Style preset chips ─────────────────── */
+        .preset-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+        .preset-chip {
+            padding: 0.35rem 0.75rem; border: 1px solid var(--border); border-radius: 20px;
+            font-size: 0.78rem; cursor: pointer; user-select: none; transition: all 0.15s;
+            background: white; font-weight: 500;
+        }
+        .preset-chip:hover { border-color: var(--primary); }
+        .preset-chip.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* ── File upload inputs ─────────────────── */
+        .photo-upload,
+        .image-upload {
+            padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 6px;
+            font-size: 0.82rem; cursor: pointer;
+        }
+        .photo-upload:focus,
+        .image-upload:focus { outline: none; border-color: var(--primary); }
     </style>
 </head>
 <body>
@@ -502,11 +578,35 @@
                         <div class="card-header"><h3>Services</h3></div>
                         <div class="card-body" id="detail-services"></div>
                     </div>
+                    <div class="card" style="margin-top:1.25rem;">
+                        <div class="card-header"><h3>Team Members</h3></div>
+                        <div class="card-body" id="detail-team"></div>
+                    </div>
+                    <div class="card" style="margin-top:1.25rem;">
+                        <div class="card-header"><h3>Products / Catalog</h3></div>
+                        <div class="card-body" id="detail-products"></div>
+                    </div>
+                    <div class="card" style="margin-top:1.25rem;">
+                        <div class="card-header"><h3>Testimonials</h3></div>
+                        <div class="card-body" id="detail-testimonials"></div>
+                    </div>
+                    <div class="card" style="margin-top:1.25rem;">
+                        <div class="card-header"><h3>Case Studies</h3></div>
+                        <div class="card-body" id="detail-casestudies"></div>
+                    </div>
                 </div>
                 <div>
                     <div class="card">
-                        <div class="card-header"><h3>Branding</h3></div>
+                        <div class="card-header"><h3>Branding &amp; Styling</h3></div>
                         <div class="card-body" id="detail-branding"></div>
+                    </div>
+                    <div class="card" style="margin-top:1.25rem;">
+                        <div class="card-header"><h3>Content Sections</h3></div>
+                        <div class="card-body" id="detail-sections"></div>
+                    </div>
+                    <div class="card" style="margin-top:1.25rem;">
+                        <div class="card-header"><h3>SEO &amp; Analytics</h3></div>
+                        <div class="card-body" id="detail-seo"></div>
                     </div>
                     <div class="card" style="margin-top:1.25rem;">
                         <div class="card-header"><h3>Metadata</h3></div>
@@ -629,74 +729,233 @@
 
     <!-- New Website Modal -->
     <div class="modal-overlay" id="new-site-modal">
-        <div class="modal">
+        <div class="modal" style="max-width:680px;">
             <div class="modal-header">
                 <h3>Create New Website</h3>
                 <button class="modal-close" onclick="closeModal('new-site-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="new-site-form" onsubmit="return createWebsite(event)">
-                    <div class="form-group">
-                        <label>Business Name *</label>
-                        <input type="text" class="form-control" id="f-business-name" required placeholder="e.g. FitZone Gym">
+                    <div class="modal-tabs" id="create-tabs">
+                        <div class="modal-tab active" data-tab="c-basics">Basics</div>
+                        <div class="modal-tab" data-tab="c-branding">Branding</div>
+                        <div class="modal-tab" data-tab="c-sections">Sections</div>
+                        <div class="modal-tab" data-tab="c-team">Team</div>
+                        <div class="modal-tab" data-tab="c-products">Products</div>
+                        <div class="modal-tab" data-tab="c-testimonials">Testimonials</div>
+                        <div class="modal-tab" data-tab="c-seo">SEO &amp; Analytics</div>
                     </div>
-                    <div class="form-row">
+
+                    <!-- Tab: Basics -->
+                    <div class="tab-panel active" id="c-basics">
                         <div class="form-group">
-                            <label>Industry *</label>
-                            <select class="form-control" id="f-industry" required>
-                                <option value="">Select industry...</option>
-                                <option value="fitness">Fitness / Gym</option>
-                                <option value="web-agency">Web Agency / Tech</option>
-                                <option value="restaurant">Restaurant / Cafe</option>
-                                <option value="general">General Business</option>
-                            </select>
+                            <label>Business Name *</label>
+                            <input type="text" class="form-control" id="f-business-name" required placeholder="e.g. FitZone Gym">
                         </div>
-                        <div class="form-group">
-                            <label>Template</label>
-                            <select class="form-control" id="f-template">
-                                <option value="">Auto-select by industry</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Description</label>
-                        <textarea class="form-control" id="f-description" placeholder="Briefly describe the business and what makes it unique..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Services</label>
-                        <input type="text" class="form-control" id="f-services" placeholder="Personal Training, Group Classes, Yoga">
-                        <div class="hint">Separate each service with a comma</div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Primary Color</label>
-                            <div style="display:flex;gap:0.5rem;align-items:center;">
-                                <input type="color" id="f-primary" value="#2563EB" style="width:40px;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer;">
-                                <input type="text" class="form-control" id="f-primary-text" value="#2563EB" style="flex:1;" oninput="document.getElementById('f-primary').value=this.value">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Industry *</label>
+                                <select class="form-control" id="f-industry" required>
+                                    <option value="">Select industry...</option>
+                                    <option value="fitness">Fitness / Gym</option>
+                                    <option value="web-agency">Web Agency / Tech</option>
+                                    <option value="restaurant">Restaurant / Cafe</option>
+                                    <option value="general">General Business</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Template</label>
+                                <select class="form-control" id="f-template">
+                                    <option value="">Auto-select by industry</option>
+                                </select>
                             </div>
                         </div>
                         <div class="form-group">
-                            <label>Secondary Color</label>
-                            <div style="display:flex;gap:0.5rem;align-items:center;">
-                                <input type="color" id="f-secondary" value="#1E40AF" style="width:40px;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer;">
-                                <input type="text" class="form-control" id="f-secondary-text" value="#1E40AF" style="flex:1;" oninput="document.getElementById('f-secondary').value=this.value">
+                            <label>Description</label>
+                            <textarea class="form-control" id="f-description" placeholder="Briefly describe the business and what makes it unique..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Services</label>
+                            <input type="text" class="form-control" id="f-services" placeholder="Personal Training, Group Classes, Yoga">
+                            <div class="hint">Separate each service with a comma</div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Contact Email</label>
+                                <input type="email" class="form-control" id="f-email" placeholder="info@business.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Phone</label>
+                                <input type="tel" class="form-control" id="f-phone" placeholder="+1 (555) 123-4567">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Address</label>
+                            <input type="text" class="form-control" id="f-address" placeholder="123 Main St, City, State">
+                        </div>
+                    </div>
+
+                    <!-- Tab: Branding & Styling -->
+                    <div class="tab-panel" id="c-branding">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Primary Color</label>
+                                <div style="display:flex;gap:0.5rem;align-items:center;">
+                                    <input type="color" id="f-primary" value="#2563EB" style="width:40px;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer;">
+                                    <input type="text" class="form-control" id="f-primary-text" value="#2563EB" style="flex:1;" oninput="document.getElementById('f-primary').value=this.value">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Secondary Color</label>
+                                <div style="display:flex;gap:0.5rem;align-items:center;">
+                                    <input type="color" id="f-secondary" value="#1E40AF" style="width:40px;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer;">
+                                    <input type="text" class="form-control" id="f-secondary-text" value="#1E40AF" style="flex:1;" oninput="document.getElementById('f-secondary').value=this.value">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Layout Variation</label>
+                            <div class="preset-chips" id="f-layout-chips">
+                                <span class="preset-chip active" data-val="modern">Modern</span>
+                                <span class="preset-chip" data-val="classic">Classic</span>
+                                <span class="preset-chip" data-val="minimal">Minimal</span>
+                                <span class="preset-chip" data-val="bold">Bold</span>
+                            </div>
+                            <input type="hidden" id="f-layout" value="modern">
+                        </div>
+                        <div class="form-group">
+                            <label>Font Family</label>
+                            <select class="form-control" id="f-font">
+                                <option value="Inter, system-ui, sans-serif">Inter (Default)</option>
+                                <option value="'Playfair Display', Georgia, serif">Playfair Display (Elegant)</option>
+                                <option value="'Space Grotesk', system-ui, sans-serif">Space Grotesk (Modern)</option>
+                                <option value="'DM Sans', system-ui, sans-serif">DM Sans (Clean)</option>
+                                <option value="'Merriweather', Georgia, serif">Merriweather (Traditional)</option>
+                                <option value="'Poppins', system-ui, sans-serif">Poppins (Friendly)</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Border Radius</label>
+                                <div class="preset-chips" id="f-radius-chips">
+                                    <span class="preset-chip" data-val="sharp" style="border-radius:2px;">Sharp</span>
+                                    <span class="preset-chip active" data-val="rounded">Rounded</span>
+                                    <span class="preset-chip" data-val="pill" style="border-radius:20px;">Pill</span>
+                                </div>
+                                <input type="hidden" id="f-radius" value="rounded">
+                            </div>
+                            <div class="form-group">
+                                <label>Spacing</label>
+                                <div class="preset-chips" id="f-spacing-chips">
+                                    <span class="preset-chip" data-val="compact">Compact</span>
+                                    <span class="preset-chip active" data-val="comfortable">Comfortable</span>
+                                    <span class="preset-chip" data-val="spacious">Spacious</span>
+                                </div>
+                                <input type="hidden" id="f-spacing" value="comfortable">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Animations</label>
+                            <div class="preset-chips" id="f-animation-chips">
+                                <span class="preset-chip" data-val="none">None</span>
+                                <span class="preset-chip active" data-val="subtle">Subtle</span>
+                                <span class="preset-chip" data-val="dynamic">Dynamic</span>
+                            </div>
+                            <input type="hidden" id="f-animation" value="subtle">
+                        </div>
+                    </div>
+
+                    <!-- Tab: Sections -->
+                    <div class="tab-panel" id="c-sections">
+                        <div class="form-group">
+                            <label>Enable/Disable Sections</label>
+                            <div class="hint" style="margin-bottom:0.75rem;">Choose which sections appear on the generated website.</div>
+                            <div class="section-toggles" id="f-sections">
+                                <label class="section-toggle active"><input type="checkbox" value="hero" checked> &#127937; Hero</label>
+                                <label class="section-toggle active"><input type="checkbox" value="services" checked> &#9881;&#65039; Services</label>
+                                <label class="section-toggle"><input type="checkbox" value="about"> &#128100; About</label>
+                                <label class="section-toggle"><input type="checkbox" value="portfolio"> &#128247; Portfolio</label>
+                                <label class="section-toggle active"><input type="checkbox" value="testimonials" checked> &#11088; Testimonials</label>
+                                <label class="section-toggle"><input type="checkbox" value="team"> &#128101; Team</label>
+                                <label class="section-toggle"><input type="checkbox" value="products"> &#128722; Products</label>
+                                <label class="section-toggle"><input type="checkbox" value="pricing"> &#128176; Pricing</label>
+                                <label class="section-toggle"><input type="checkbox" value="faqs"> &#10067; FAQs</label>
+                                <label class="section-toggle"><input type="checkbox" value="blog"> &#128221; Blog</label>
+                                <label class="section-toggle active"><input type="checkbox" value="contact" checked> &#128231; Contact</label>
+                                <label class="section-toggle"><input type="checkbox" value="gallery"> &#128248; Gallery</label>
                             </div>
                         </div>
                     </div>
-                    <div class="form-row">
+
+                    <!-- Tab: Team -->
+                    <div class="tab-panel" id="c-team">
                         <div class="form-group">
-                            <label>Contact Email</label>
-                            <input type="email" class="form-control" id="f-email" placeholder="info@business.com">
+                            <label>Team Members</label>
+                            <div class="hint" style="margin-bottom:0.75rem;">Add your team to display on the website.</div>
+                            <div class="repeater" id="f-team-repeater"></div>
+                            <button type="button" class="repeater-add" onclick="addRepeaterItem('f-team-repeater', 'team')">+ Add Team Member</button>
                         </div>
-                        <div class="form-group">
-                            <label>Phone</label>
-                            <input type="tel" class="form-control" id="f-phone" placeholder="+1 (555) 123-4567">
+                        <div class="form-group" style="margin-top:1.5rem;">
+                            <label>Case Studies</label>
+                            <div class="hint" style="margin-bottom:0.75rem;">Showcase past work or success stories.</div>
+                            <div class="repeater" id="f-casestudy-repeater"></div>
+                            <button type="button" class="repeater-add" onclick="addRepeaterItem('f-casestudy-repeater', 'casestudy')">+ Add Case Study</button>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>Address</label>
-                        <input type="text" class="form-control" id="f-address" placeholder="123 Main St, City, State">
+
+                    <!-- Tab: Products -->
+                    <div class="tab-panel" id="c-products">
+                        <div class="form-group">
+                            <label>Product Catalog</label>
+                            <div class="hint" style="margin-bottom:0.75rem;">Add products or service packages to showcase.</div>
+                            <div class="repeater" id="f-product-repeater"></div>
+                            <button type="button" class="repeater-add" onclick="addRepeaterItem('f-product-repeater', 'product')">+ Add Product</button>
+                        </div>
                     </div>
+
+                    <!-- Tab: Testimonials -->
+                    <div class="tab-panel" id="c-testimonials">
+                        <div class="form-group">
+                            <label>Customer Testimonials</label>
+                            <div class="hint" style="margin-bottom:0.75rem;">Add real testimonials or let AI generate them from your business description.</div>
+                            <div class="repeater" id="f-testimonial-repeater"></div>
+                            <button type="button" class="repeater-add" onclick="addRepeaterItem('f-testimonial-repeater', 'testimonial')">+ Add Testimonial</button>
+                        </div>
+                    </div>
+
+                    <!-- Tab: SEO & Analytics -->
+                    <div class="tab-panel" id="c-seo">
+                        <div class="form-group">
+                            <label>Meta Title</label>
+                            <input type="text" class="form-control" id="f-meta-title" placeholder="Page title for search engines (auto-generated if empty)">
+                            <div class="hint">Recommended: 50-60 characters</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Meta Description</label>
+                            <textarea class="form-control" id="f-meta-desc" placeholder="Brief description for search results (auto-generated if empty)" style="min-height:60px;"></textarea>
+                            <div class="hint">Recommended: 150-160 characters</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Keywords</label>
+                            <input type="text" class="form-control" id="f-keywords" placeholder="fitness, gym, personal training, health">
+                            <div class="hint">Separate with commas</div>
+                        </div>
+                        <div class="form-group">
+                            <label>OG Image URL</label>
+                            <input type="url" class="form-control" id="f-og-image" placeholder="https://example.com/social-preview.jpg">
+                            <div class="hint">Image shown when shared on social media</div>
+                        </div>
+                        <hr style="border:none;border-top:1px solid var(--border);margin:1.25rem 0;">
+                        <div class="form-group">
+                            <label>Google Analytics Measurement ID</label>
+                            <input type="text" class="form-control" id="f-ga-id" placeholder="G-XXXXXXXXXX">
+                        </div>
+                        <div class="form-group">
+                            <label>Facebook Pixel ID</label>
+                            <input type="text" class="form-control" id="f-fb-pixel" placeholder="123456789012345">
+                        </div>
+                    </div>
+
                     <div style="display:flex; gap:0.75rem; justify-content:flex-end; margin-top:1.5rem;">
                         <button type="button" class="btn" onclick="closeModal('new-site-modal')">Cancel</button>
                         <button type="submit" class="btn btn-primary" id="create-btn">Create &amp; Generate</button>
@@ -708,7 +967,7 @@
 
     <!-- Edit Website Modal -->
     <div class="modal-overlay" id="edit-site-modal">
-        <div class="modal">
+        <div class="modal" style="max-width:680px;">
             <div class="modal-header">
                 <h3>Edit Website</h3>
                 <button class="modal-close" onclick="closeModal('edit-site-modal')">&times;</button>
@@ -716,65 +975,216 @@
             <div class="modal-body">
                 <form id="edit-site-form" onsubmit="return updateWebsite(event)">
                     <input type="hidden" id="e-website-id">
-                    <div class="form-group">
-                        <label>Business Name *</label>
-                        <input type="text" class="form-control" id="e-business-name" required>
+                    <div class="modal-tabs" id="edit-tabs">
+                        <div class="modal-tab active" data-tab="e-basics">Basics</div>
+                        <div class="modal-tab" data-tab="e-branding">Branding</div>
+                        <div class="modal-tab" data-tab="e-sections">Sections</div>
+                        <div class="modal-tab" data-tab="e-team">Team</div>
+                        <div class="modal-tab" data-tab="e-products">Products</div>
+                        <div class="modal-tab" data-tab="e-testimonials">Testimonials</div>
+                        <div class="modal-tab" data-tab="e-seo">SEO &amp; Analytics</div>
                     </div>
-                    <div class="form-row">
+
+                    <!-- Tab: Basics -->
+                    <div class="tab-panel active" id="e-basics">
                         <div class="form-group">
-                            <label>Industry</label>
-                            <select class="form-control" id="e-industry">
-                                <option value="fitness">Fitness / Gym</option>
-                                <option value="web-agency">Web Agency / Tech</option>
-                                <option value="restaurant">Restaurant / Cafe</option>
-                                <option value="general">General Business</option>
-                            </select>
+                            <label>Business Name *</label>
+                            <input type="text" class="form-control" id="e-business-name" required>
                         </div>
-                        <div class="form-group">
-                            <label>Template</label>
-                            <select class="form-control" id="e-template">
-                                <option value="">Auto-select</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Description</label>
-                        <textarea class="form-control" id="e-description"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Services</label>
-                        <input type="text" class="form-control" id="e-services">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Primary Color</label>
-                            <div style="display:flex;gap:0.5rem;align-items:center;">
-                                <input type="color" id="e-primary" style="width:40px;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer;">
-                                <input type="text" class="form-control" id="e-primary-text" style="flex:1;" oninput="document.getElementById('e-primary').value=this.value">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Industry</label>
+                                <select class="form-control" id="e-industry">
+                                    <option value="fitness">Fitness / Gym</option>
+                                    <option value="web-agency">Web Agency / Tech</option>
+                                    <option value="restaurant">Restaurant / Cafe</option>
+                                    <option value="general">General Business</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Template</label>
+                                <select class="form-control" id="e-template">
+                                    <option value="">Auto-select</option>
+                                </select>
                             </div>
                         </div>
                         <div class="form-group">
-                            <label>Secondary Color</label>
-                            <div style="display:flex;gap:0.5rem;align-items:center;">
-                                <input type="color" id="e-secondary" style="width:40px;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer;">
-                                <input type="text" class="form-control" id="e-secondary-text" style="flex:1;" oninput="document.getElementById('e-secondary').value=this.value">
+                            <label>Description</label>
+                            <textarea class="form-control" id="e-description"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Services</label>
+                            <input type="text" class="form-control" id="e-services">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" class="form-control" id="e-email">
+                            </div>
+                            <div class="form-group">
+                                <label>Phone</label>
+                                <input type="tel" class="form-control" id="e-phone">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Address</label>
+                            <input type="text" class="form-control" id="e-address">
+                        </div>
+                    </div>
+
+                    <!-- Tab: Branding & Styling -->
+                    <div class="tab-panel" id="e-branding">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Primary Color</label>
+                                <div style="display:flex;gap:0.5rem;align-items:center;">
+                                    <input type="color" id="e-primary" style="width:40px;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer;">
+                                    <input type="text" class="form-control" id="e-primary-text" style="flex:1;" oninput="document.getElementById('e-primary').value=this.value">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Secondary Color</label>
+                                <div style="display:flex;gap:0.5rem;align-items:center;">
+                                    <input type="color" id="e-secondary" style="width:40px;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer;">
+                                    <input type="text" class="form-control" id="e-secondary-text" style="flex:1;" oninput="document.getElementById('e-secondary').value=this.value">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Layout Variation</label>
+                            <div class="preset-chips" id="e-layout-chips">
+                                <span class="preset-chip active" data-val="modern">Modern</span>
+                                <span class="preset-chip" data-val="classic">Classic</span>
+                                <span class="preset-chip" data-val="minimal">Minimal</span>
+                                <span class="preset-chip" data-val="bold">Bold</span>
+                            </div>
+                            <input type="hidden" id="e-layout" value="modern">
+                        </div>
+                        <div class="form-group">
+                            <label>Font Family</label>
+                            <select class="form-control" id="e-font">
+                                <option value="Inter, system-ui, sans-serif">Inter (Default)</option>
+                                <option value="'Playfair Display', Georgia, serif">Playfair Display (Elegant)</option>
+                                <option value="'Space Grotesk', system-ui, sans-serif">Space Grotesk (Modern)</option>
+                                <option value="'DM Sans', system-ui, sans-serif">DM Sans (Clean)</option>
+                                <option value="'Merriweather', Georgia, serif">Merriweather (Traditional)</option>
+                                <option value="'Poppins', system-ui, sans-serif">Poppins (Friendly)</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Border Radius</label>
+                                <div class="preset-chips" id="e-radius-chips">
+                                    <span class="preset-chip" data-val="sharp" style="border-radius:2px;">Sharp</span>
+                                    <span class="preset-chip active" data-val="rounded">Rounded</span>
+                                    <span class="preset-chip" data-val="pill" style="border-radius:20px;">Pill</span>
+                                </div>
+                                <input type="hidden" id="e-radius" value="rounded">
+                            </div>
+                            <div class="form-group">
+                                <label>Spacing</label>
+                                <div class="preset-chips" id="e-spacing-chips">
+                                    <span class="preset-chip" data-val="compact">Compact</span>
+                                    <span class="preset-chip active" data-val="comfortable">Comfortable</span>
+                                    <span class="preset-chip" data-val="spacious">Spacious</span>
+                                </div>
+                                <input type="hidden" id="e-spacing" value="comfortable">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Animations</label>
+                            <div class="preset-chips" id="e-animation-chips">
+                                <span class="preset-chip" data-val="none">None</span>
+                                <span class="preset-chip active" data-val="subtle">Subtle</span>
+                                <span class="preset-chip" data-val="dynamic">Dynamic</span>
+                            </div>
+                            <input type="hidden" id="e-animation" value="subtle">
+                        </div>
+                    </div>
+
+                    <!-- Tab: Sections -->
+                    <div class="tab-panel" id="e-sections">
+                        <div class="form-group">
+                            <label>Enable/Disable Sections</label>
+                            <div class="hint" style="margin-bottom:0.75rem;">Choose which sections appear on the generated website.</div>
+                            <div class="section-toggles" id="e-sections-toggles">
+                                <label class="section-toggle"><input type="checkbox" value="hero"> &#127937; Hero</label>
+                                <label class="section-toggle"><input type="checkbox" value="services"> &#9881;&#65039; Services</label>
+                                <label class="section-toggle"><input type="checkbox" value="about"> &#128100; About</label>
+                                <label class="section-toggle"><input type="checkbox" value="portfolio"> &#128247; Portfolio</label>
+                                <label class="section-toggle"><input type="checkbox" value="testimonials"> &#11088; Testimonials</label>
+                                <label class="section-toggle"><input type="checkbox" value="team"> &#128101; Team</label>
+                                <label class="section-toggle"><input type="checkbox" value="products"> &#128722; Products</label>
+                                <label class="section-toggle"><input type="checkbox" value="pricing"> &#128176; Pricing</label>
+                                <label class="section-toggle"><input type="checkbox" value="faqs"> &#10067; FAQs</label>
+                                <label class="section-toggle"><input type="checkbox" value="blog"> &#128221; Blog</label>
+                                <label class="section-toggle"><input type="checkbox" value="contact"> &#128231; Contact</label>
+                                <label class="section-toggle"><input type="checkbox" value="gallery"> &#128248; Gallery</label>
                             </div>
                         </div>
                     </div>
-                    <div class="form-row">
+
+                    <!-- Tab: Team -->
+                    <div class="tab-panel" id="e-team">
                         <div class="form-group">
-                            <label>Email</label>
-                            <input type="email" class="form-control" id="e-email">
+                            <label>Team Members</label>
+                            <div class="repeater" id="e-team-repeater"></div>
+                            <button type="button" class="repeater-add" onclick="addRepeaterItem('e-team-repeater', 'team')">+ Add Team Member</button>
                         </div>
-                        <div class="form-group">
-                            <label>Phone</label>
-                            <input type="tel" class="form-control" id="e-phone">
+                        <div class="form-group" style="margin-top:1.5rem;">
+                            <label>Case Studies</label>
+                            <div class="repeater" id="e-casestudy-repeater"></div>
+                            <button type="button" class="repeater-add" onclick="addRepeaterItem('e-casestudy-repeater', 'casestudy')">+ Add Case Study</button>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>Address</label>
-                        <input type="text" class="form-control" id="e-address">
+
+                    <!-- Tab: Products -->
+                    <div class="tab-panel" id="e-products">
+                        <div class="form-group">
+                            <label>Product Catalog</label>
+                            <div class="repeater" id="e-product-repeater"></div>
+                            <button type="button" class="repeater-add" onclick="addRepeaterItem('e-product-repeater', 'product')">+ Add Product</button>
+                        </div>
                     </div>
+
+                    <!-- Tab: Testimonials -->
+                    <div class="tab-panel" id="e-testimonials">
+                        <div class="form-group">
+                            <label>Customer Testimonials</label>
+                            <div class="repeater" id="e-testimonial-repeater"></div>
+                            <button type="button" class="repeater-add" onclick="addRepeaterItem('e-testimonial-repeater', 'testimonial')">+ Add Testimonial</button>
+                        </div>
+                    </div>
+
+                    <!-- Tab: SEO & Analytics -->
+                    <div class="tab-panel" id="e-seo">
+                        <div class="form-group">
+                            <label>Meta Title</label>
+                            <input type="text" class="form-control" id="e-meta-title" placeholder="Page title for search engines">
+                        </div>
+                        <div class="form-group">
+                            <label>Meta Description</label>
+                            <textarea class="form-control" id="e-meta-desc" style="min-height:60px;"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Keywords</label>
+                            <input type="text" class="form-control" id="e-keywords">
+                        </div>
+                        <div class="form-group">
+                            <label>OG Image URL</label>
+                            <input type="url" class="form-control" id="e-og-image">
+                        </div>
+                        <hr style="border:none;border-top:1px solid var(--border);margin:1.25rem 0;">
+                        <div class="form-group">
+                            <label>Google Analytics Measurement ID</label>
+                            <input type="text" class="form-control" id="e-ga-id" placeholder="G-XXXXXXXXXX">
+                        </div>
+                        <div class="form-group">
+                            <label>Facebook Pixel ID</label>
+                            <input type="text" class="form-control" id="e-fb-pixel">
+                        </div>
+                    </div>
+
                     <div style="display:flex; gap:0.75rem; justify-content:flex-end; margin-top:1.5rem;">
                         <button type="button" class="btn" onclick="closeModal('edit-site-modal')">Cancel</button>
                         <button type="submit" class="btn btn-primary">Save Changes</button>
@@ -855,6 +1265,36 @@
                     if (textEl) textEl.value = e.target.value;
                 });
             }
+        });
+        // Tabs
+        document.querySelectorAll('.modal-tabs').forEach(function(tabBar) {
+            tabBar.querySelectorAll('.modal-tab').forEach(function(tab) {
+                tab.addEventListener('click', function() {
+                    tabBar.querySelectorAll('.modal-tab').forEach(function(t) { t.classList.remove('active'); });
+                    tab.classList.add('active');
+                    var form = tabBar.closest('.modal-body') || tabBar.parentElement;
+                    form.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+                    var panel = document.getElementById(tab.dataset.tab);
+                    if (panel) panel.classList.add('active');
+                });
+            });
+        });
+        // Section toggles
+        document.querySelectorAll('.section-toggle input').forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                cb.parentElement.classList.toggle('active', cb.checked);
+            });
+        });
+        // Preset chips
+        document.querySelectorAll('.preset-chips').forEach(function(container) {
+            container.querySelectorAll('.preset-chip').forEach(function(chip) {
+                chip.addEventListener('click', function() {
+                    container.querySelectorAll('.preset-chip').forEach(function(c) { c.classList.remove('active'); });
+                    chip.classList.add('active');
+                    var hidden = container.nextElementSibling;
+                    if (hidden && hidden.type === 'hidden') hidden.value = chip.dataset.val;
+                });
+            });
         });
     }
 
@@ -1178,11 +1618,87 @@
             : '<span style="color:var(--text-light);font-size:0.9rem;">No services listed</span>';
 
         var branding = w.branding || {};
+        var styling = w.styling || {};
         document.getElementById('detail-branding').innerHTML =
             '<div class="detail-section">' +
             '<div class="detail-row"><span class="dl">Logo Text</span><span class="dv">' + esc(branding.logoText || '-') + '</span></div>' +
             '<div class="detail-row"><span class="dl">Primary</span><span class="dv"><span class="color-swatch" style="background:' + (branding.primaryColor || '#2563EB') + '"></span>' + (branding.primaryColor || '-') + '</span></div>' +
             '<div class="detail-row"><span class="dl">Secondary</span><span class="dv"><span class="color-swatch" style="background:' + (branding.secondaryColor || '#1E40AF') + '"></span>' + (branding.secondaryColor || '-') + '</span></div>' +
+            '<div class="detail-row"><span class="dl">Layout</span><span class="dv">' + capitalize(w.layoutVariation || 'modern') + '</span></div>' +
+            '<div class="detail-row"><span class="dl">Font</span><span class="dv" style="font-size:0.82rem;">' + esc(styling.fontFamily || 'Inter') + '</span></div>' +
+            '<div class="detail-row"><span class="dl">Border Radius</span><span class="dv">' + capitalize(styling.borderRadius || 'rounded') + '</span></div>' +
+            '<div class="detail-row"><span class="dl">Spacing</span><span class="dv">' + capitalize(styling.spacing || 'comfortable') + '</span></div>' +
+            '<div class="detail-row"><span class="dl">Animations</span><span class="dv">' + capitalize(styling.animation || 'subtle') + '</span></div>' +
+            '</div>';
+
+        // Content Sections
+        var enabledSections = w.enabledSections || [];
+        document.getElementById('detail-sections').innerHTML = enabledSections.length > 0
+            ? enabledSections.map(function(s) { return '<span class="badge" style="background:var(--primary-light);color:var(--primary);margin:0.2rem;">' + capitalize(s) + '</span>'; }).join(' ')
+            : '<span style="color:var(--text-light);font-size:0.9rem;">Default sections</span>';
+
+        // Team Members
+        var team = w.teamMembers || [];
+        document.getElementById('detail-team').innerHTML = team.length > 0
+            ? team.map(function(m) {
+                return '<div style="padding:0.6rem 0;border-bottom:1px solid var(--border);">' +
+                    '<strong>' + esc(m.name || '-') + '</strong> <span style="color:var(--text-light);font-size:0.85rem;">\u2014 ' + esc(m.role || '') + '</span>' +
+                    (m.bio ? '<div style="font-size:0.85rem;color:var(--text-light);margin-top:0.2rem;">' + esc(m.bio) + '</div>' : '') +
+                    '</div>';
+            }).join('')
+            : '<span style="color:var(--text-light);font-size:0.9rem;">No team members added</span>';
+
+        // Products
+        var products = w.products || [];
+        document.getElementById('detail-products').innerHTML = products.length > 0
+            ? products.map(function(p) {
+                return '<div style="padding:0.6rem 0;border-bottom:1px solid var(--border);">' +
+                    '<strong>' + esc(p.name || '-') + '</strong>' +
+                    (p.price ? ' <span class="badge" style="background:var(--success-bg);color:#065f46;">' + esc(p.price) + '</span>' : '') +
+                    (p.description ? '<div style="font-size:0.85rem;color:var(--text-light);margin-top:0.2rem;">' + esc(p.description) + '</div>' : '') +
+                    '</div>';
+            }).join('')
+            : '<span style="color:var(--text-light);font-size:0.9rem;">No products added</span>';
+
+        // Testimonials
+        var testimonials = w.testimonials || [];
+        document.getElementById('detail-testimonials').innerHTML = testimonials.length > 0
+            ? testimonials.map(function(t) {
+                var stars = t.rating ? ' ' + '\u2B50'.repeat(Math.min(t.rating, 5)) : '';
+                return '<div style="padding:0.6rem 0;border-bottom:1px solid var(--border);">' +
+                    '<div style="font-size:0.85rem;color:var(--text-light);font-style:italic;">\u201C' + esc(t.text || '') + '\u201D</div>' +
+                    '<div style="font-size:0.82rem;margin-top:0.3rem;"><strong>' + esc(t.author || '-') + '</strong>' + stars + '</div>' +
+                    '</div>';
+            }).join('')
+            : '<span style="color:var(--text-light);font-size:0.9rem;">No testimonials added</span>';
+
+        // Case Studies
+        var caseStudies = w.caseStudies || [];
+        document.getElementById('detail-casestudies').innerHTML = caseStudies.length > 0
+            ? caseStudies.map(function(c) {
+                return '<div style="padding:0.6rem 0;border-bottom:1px solid var(--border);">' +
+                    '<strong>' + esc(c.title || '-') + '</strong>' +
+                    (c.description ? '<div style="font-size:0.85rem;color:var(--text-light);margin-top:0.2rem;">' + esc(c.description) + '</div>' : '') +
+                    (c.result ? '<div style="font-size:0.82rem;margin-top:0.3rem;"><span class="badge" style="background:var(--success-bg);color:#065f46;">Result: ' + esc(c.result) + '</span></div>' : '') +
+                    '</div>';
+            }).join('')
+            : '<span style="color:var(--text-light);font-size:0.9rem;">No case studies added</span>';
+
+        // SEO & Analytics
+        var seo = w.seo || {};
+        var analytics = w.analytics || {};
+        document.getElementById('detail-seo').innerHTML =
+            '<div class="detail-section">' +
+            '<h4>SEO</h4>' +
+            '<div class="detail-row"><span class="dl">Meta Title</span><span class="dv">' + esc(seo.metaTitle || 'Auto-generated') + '</span></div>' +
+            '<div class="detail-row"><span class="dl">Meta Description</span><span class="dv">' + esc(seo.metaDescription || 'Auto-generated') + '</span></div>' +
+            '<div class="detail-row"><span class="dl">Keywords</span><span class="dv">' + ((seo.keywords || []).length ? (seo.keywords || []).map(function(k) { return '<span class="badge" style="background:#f1f5f9;color:var(--text-light);margin:0.1rem;">' + esc(k) + '</span>'; }).join(' ') : '-') + '</span></div>' +
+            '<div class="detail-row"><span class="dl">OG Image</span><span class="dv">' + (seo.ogImage ? '<a href="' + seo.ogImage + '" target="_blank">View</a>' : '-') + '</span></div>' +
+            '</div>' +
+            '<div class="detail-section" style="margin-top:1rem;">' +
+            '<h4>Analytics</h4>' +
+            '<div class="detail-row"><span class="dl">Google Analytics</span><span class="dv" style="font-family:monospace;font-size:0.82rem;">' + esc(analytics.googleAnalyticsId || 'Not configured') + '</span></div>' +
+            '<div class="detail-row"><span class="dl">Facebook Pixel</span><span class="dv" style="font-family:monospace;font-size:0.82rem;">' + esc(analytics.facebookPixelId || 'Not configured') + '</span></div>' +
             '</div>';
 
         document.getElementById('detail-meta').innerHTML =
@@ -1342,6 +1858,113 @@
     }
 
     // ============================================
+    //  REPEATER HELPERS
+    // ============================================
+    function handlePhotoUpload(event, id) {
+        var file = event.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            // Find the hidden input for photoUrl and set it
+            var item = event.target.closest('.repeater-item');
+            var hiddenInput = item.querySelector('input[type="hidden"][data-field="photoUrl"]');
+            if (hiddenInput) hiddenInput.value = e.target.result;
+            event.target.nextElementSibling.textContent = '✓ ' + file.name;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function handleImageUpload(event, id) {
+        var file = event.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            // Find the hidden input for imageUrl and set it
+            var item = event.target.closest('.repeater-item');
+            var hiddenInput = item.querySelector('input[type="hidden"][data-field="imageUrl"]');
+            if (hiddenInput) hiddenInput.value = e.target.result;
+            event.target.nextElementSibling.textContent = '✓ ' + file.name;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function addRepeaterItem(containerId, type, data) {
+        var container = document.getElementById(containerId);
+        var item = document.createElement('div');
+        item.className = 'repeater-item';
+        data = data || {};
+
+        var fields = '';
+        if (type === 'team') {
+            fields = '<input placeholder="Name" data-field="name" value="' + esc(data.name || '') + '">' +
+                '<input placeholder="Role / Title" data-field="role" value="' + esc(data.role || '') + '">' +
+                '<textarea placeholder="Short bio..." data-field="bio" rows="2">' + esc(data.bio || '') + '</textarea>' +
+                '<input type="file" accept="image/*" class="photo-upload" data-field="photoUrl" onchange="handlePhotoUpload(event, ' + Math.random() + ')">' +
+                '<input type="hidden" data-field="photoUrl" value="' + esc(data.photoUrl || '') + '">';
+        } else if (type === 'product') {
+            fields = '<input placeholder="Product name" data-field="name" value="' + esc(data.name || '') + '">' +
+                '<input placeholder="Description" data-field="description" value="' + esc(data.description || '') + '">' +
+                '<input placeholder="Price (e.g. $49/mo)" data-field="price" value="' + esc(data.price || '') + '">' +
+                '<input type="file" accept="image/*" class="image-upload" data-field="imageUrl" onchange="handleImageUpload(event, ' + Math.random() + ')">' +
+                '<input type="hidden" data-field="imageUrl" value="' + esc(data.imageUrl || '') + '">';
+        } else if (type === 'testimonial') {
+            fields = '<input placeholder="Author name" data-field="author" value="' + esc(data.author || '') + '">' +
+                '<textarea placeholder="Testimonial text..." data-field="text" rows="2">' + esc(data.text || '') + '</textarea>' +
+                '<input type="number" placeholder="Rating (1-5)" data-field="rating" min="1" max="5" value="' + (data.rating || '') + '">';
+        } else if (type === 'casestudy') {
+            fields = '<input placeholder="Title" data-field="title" value="' + esc(data.title || '') + '">' +
+                '<textarea placeholder="Description..." data-field="description" rows="2">' + esc(data.description || '') + '</textarea>' +
+                '<input placeholder="Result / Outcome" data-field="result" value="' + esc(data.result || '') + '">';
+        }
+
+        item.innerHTML = '<div class="repeater-fields">' + fields + '</div>' +
+            '<button type="button" class="repeater-remove" onclick="this.parentElement.remove()">&#10005;</button>';
+        container.appendChild(item);
+    }
+
+    function getRepeaterData(containerId, type) {
+        var items = [];
+        document.querySelectorAll('#' + containerId + ' .repeater-item').forEach(function(item) {
+            var obj = {};
+            item.querySelectorAll('[data-field]').forEach(function(el) {
+                var val = el.value.trim();
+                if (el.type === 'number' && val) val = parseInt(val);
+                obj[el.dataset.field] = val;
+            });
+            // Only add if at least one field has data
+            var hasData = Object.values(obj).some(function(v) { return v !== '' && v !== 0; });
+            if (hasData) items.push(obj);
+        });
+        return items;
+    }
+
+    function getEnabledSections(containerId) {
+        var sections = [];
+        document.querySelectorAll('#' + containerId + ' input[type="checkbox"]').forEach(function(cb) {
+            if (cb.checked) sections.push(cb.value);
+        });
+        return sections;
+    }
+
+    function setEnabledSections(containerId, sections) {
+        sections = sections || [];
+        document.querySelectorAll('#' + containerId + ' input[type="checkbox"]').forEach(function(cb) {
+            cb.checked = sections.indexOf(cb.value) >= 0;
+            cb.parentElement.classList.toggle('active', cb.checked);
+        });
+    }
+
+    function setChipValue(chipsId, hiddenId, value) {
+        var container = document.getElementById(chipsId);
+        var hidden = document.getElementById(hiddenId);
+        if (!container) return;
+        container.querySelectorAll('.preset-chip').forEach(function(c) {
+            c.classList.toggle('active', c.dataset.val === value);
+        });
+        if (hidden) hidden.value = value;
+    }
+
+    // ============================================
     //  CRUD OPERATIONS
     // ============================================
     async function createWebsite(e) {
@@ -1368,6 +1991,29 @@
                 email: document.getElementById('f-email').value,
                 phone: document.getElementById('f-phone').value,
                 address: document.getElementById('f-address').value
+            },
+            // New fields
+            teamMembers: getRepeaterData('f-team-repeater', 'team'),
+            products: getRepeaterData('f-product-repeater', 'product'),
+            testimonials: getRepeaterData('f-testimonial-repeater', 'testimonial'),
+            caseStudies: getRepeaterData('f-casestudy-repeater', 'casestudy'),
+            enabledSections: getEnabledSections('f-sections'),
+            layoutVariation: document.getElementById('f-layout').value,
+            styling: {
+                fontFamily: document.getElementById('f-font').value,
+                borderRadius: document.getElementById('f-radius').value,
+                spacing: document.getElementById('f-spacing').value,
+                animation: document.getElementById('f-animation').value
+            },
+            seo: {
+                metaTitle: document.getElementById('f-meta-title').value,
+                metaDescription: document.getElementById('f-meta-desc').value,
+                keywords: document.getElementById('f-keywords').value.split(',').map(function(s) { return s.trim(); }).filter(Boolean),
+                ogImage: document.getElementById('f-og-image').value
+            },
+            analytics: {
+                googleAnalyticsId: document.getElementById('f-ga-id').value,
+                facebookPixelId: document.getElementById('f-fb-pixel').value
             }
         };
 
@@ -1391,6 +2037,18 @@
             document.getElementById('f-primary-text').value = '#2563EB';
             document.getElementById('f-secondary').value = '#1E40AF';
             document.getElementById('f-secondary-text').value = '#1E40AF';
+            // Reset new field controls
+            ['f-team-repeater','f-product-repeater','f-testimonial-repeater','f-casestudy-repeater'].forEach(function(id) {
+                document.getElementById(id).innerHTML = '';
+            });
+            setChipValue('f-layout-chips', 'f-layout', 'modern');
+            setChipValue('f-radius-chips', 'f-radius', 'rounded');
+            setChipValue('f-spacing-chips', 'f-spacing', 'comfortable');
+            setChipValue('f-animation-chips', 'f-animation', 'subtle');
+            setEnabledSections('f-sections', ['hero','services','testimonials','contact']);
+            // Reset to first tab
+            var firstTab = document.querySelector('#create-tabs .modal-tab');
+            if (firstTab) firstTab.click();
             if (currentPage === 'dashboard') renderDashboard();
             if (currentPage === 'websites') renderWebsitesTable();
         } catch (err) {
@@ -1421,6 +2079,40 @@
         document.getElementById('e-phone').value = (w.contact && w.contact.phone) || '';
         document.getElementById('e-address').value = (w.contact && w.contact.address) || '';
 
+        // Styling
+        var styling = w.styling || {};
+        setChipValue('e-layout-chips', 'e-layout', w.layoutVariation || 'modern');
+        document.getElementById('e-font').value = styling.fontFamily || 'Inter, system-ui, sans-serif';
+        setChipValue('e-radius-chips', 'e-radius', styling.borderRadius || 'rounded');
+        setChipValue('e-spacing-chips', 'e-spacing', styling.spacing || 'comfortable');
+        setChipValue('e-animation-chips', 'e-animation', styling.animation || 'subtle');
+
+        // Sections
+        setEnabledSections('e-sections-toggles', w.enabledSections || ['hero','services','testimonials','contact']);
+
+        // Repeaters
+        ['e-team-repeater','e-product-repeater','e-testimonial-repeater','e-casestudy-repeater'].forEach(function(id) {
+            document.getElementById(id).innerHTML = '';
+        });
+        (w.teamMembers || []).forEach(function(m) { addRepeaterItem('e-team-repeater', 'team', m); });
+        (w.products || []).forEach(function(p) { addRepeaterItem('e-product-repeater', 'product', p); });
+        (w.testimonials || []).forEach(function(t) { addRepeaterItem('e-testimonial-repeater', 'testimonial', t); });
+        (w.caseStudies || []).forEach(function(c) { addRepeaterItem('e-casestudy-repeater', 'casestudy', c); });
+
+        // SEO & Analytics
+        var seo = w.seo || {};
+        var analytics = w.analytics || {};
+        document.getElementById('e-meta-title').value = seo.metaTitle || '';
+        document.getElementById('e-meta-desc').value = seo.metaDescription || '';
+        document.getElementById('e-keywords').value = (seo.keywords || []).join(', ');
+        document.getElementById('e-og-image').value = seo.ogImage || '';
+        document.getElementById('e-ga-id').value = analytics.googleAnalyticsId || '';
+        document.getElementById('e-fb-pixel').value = analytics.facebookPixelId || '';
+
+        // Reset to first tab
+        var firstTab = document.querySelector('#edit-tabs .modal-tab');
+        if (firstTab) firstTab.click();
+
         openModal('edit-site-modal');
     }
 
@@ -1442,6 +2134,28 @@
                 email: document.getElementById('e-email').value,
                 phone: document.getElementById('e-phone').value,
                 address: document.getElementById('e-address').value
+            },
+            teamMembers: getRepeaterData('e-team-repeater', 'team'),
+            products: getRepeaterData('e-product-repeater', 'product'),
+            testimonials: getRepeaterData('e-testimonial-repeater', 'testimonial'),
+            caseStudies: getRepeaterData('e-casestudy-repeater', 'casestudy'),
+            enabledSections: getEnabledSections('e-sections-toggles'),
+            layoutVariation: document.getElementById('e-layout').value,
+            styling: {
+                fontFamily: document.getElementById('e-font').value,
+                borderRadius: document.getElementById('e-radius').value,
+                spacing: document.getElementById('e-spacing').value,
+                animation: document.getElementById('e-animation').value
+            },
+            seo: {
+                metaTitle: document.getElementById('e-meta-title').value,
+                metaDescription: document.getElementById('e-meta-desc').value,
+                keywords: document.getElementById('e-keywords').value.split(',').map(function(s) { return s.trim(); }).filter(Boolean),
+                ogImage: document.getElementById('e-og-image').value
+            },
+            analytics: {
+                googleAnalyticsId: document.getElementById('e-ga-id').value,
+                facebookPixelId: document.getElementById('e-fb-pixel').value
             }
         };
 

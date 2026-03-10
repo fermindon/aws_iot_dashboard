@@ -67,14 +67,20 @@ Write-Host "  CDN:             https://$cdnDomain"
 Write-Host "  Generated Sites: $generatedBucket"
 Write-Host "  Templates:       $templateBucket"
 
-# ── 3. Package & deploy API Router Lambda ─────────────
-Write-Host "[3/7] Deploying API Router Lambda..." -ForegroundColor Yellow
+# ── 3. Build & deploy API Router Lambda (TypeScript) ──
+Write-Host "[3/7] Building & deploying API Router Lambda..." -ForegroundColor Yellow
 
-$apiRouterDir = "platform\functions\api-router"
+$apiRouterSrc = "platform/functions/api-router/src/index.ts"
+$apiRouterOut = "dist/api-router"
 $apiRouterZip = "$env:TEMP\saas-api-router.zip"
 
+# Build TypeScript with esbuild
+if (Test-Path $apiRouterOut) { Remove-Item $apiRouterOut -Recurse -Force }
+npx esbuild $apiRouterSrc --bundle --platform=node --target=node20 --outfile="$apiRouterOut/index.js" --external:@aws-sdk/*
+if ($LASTEXITCODE -ne 0) { throw "esbuild failed for API Router" }
+
 if (Test-Path $apiRouterZip) { Remove-Item $apiRouterZip }
-Compress-Archive -Path "$apiRouterDir\index.py" -DestinationPath $apiRouterZip -Force
+Compress-Archive -Path "$apiRouterOut\index.js" -DestinationPath $apiRouterZip -Force
 
 aws lambda update-function-code `
   --function-name $apiRouterName `
@@ -139,6 +145,11 @@ $mainBucket = aws cloudformation describe-stacks `
 if ($mainBucket) {
   aws s3 sync apps/dashboard/website/ "s3://$mainBucket/dashboard/" --region $Region --delete
   Write-Host "  Dashboard deployed to /dashboard/ on main bucket." -ForegroundColor Green
+  
+  # Invalidate CloudFront cache for the dashboard distribution
+  $dashboardCdnId = "E3J054RNYC35HW"
+  aws cloudfront create-invalidation --distribution-id $dashboardCdnId --paths "/dashboard/*" --region $Region | Out-Null
+  Write-Host "  Dashboard CloudFront cache invalidated." -ForegroundColor Green
 } else {
   Write-Host "  Main hosting stack not found - dashboard files ready in apps/dashboard/website/" -ForegroundColor DarkYellow
 }

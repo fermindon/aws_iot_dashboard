@@ -290,7 +290,7 @@ Resources:
     Properties:
       FunctionName: !Sub saas-api-router-${EnvironmentName}
       Handler: index.handler
-      Runtime: python3.11
+      Runtime: nodejs20.x
       Role: !GetAtt SaaSLambdaRole.Arn
       Timeout: 30
       MemorySize: 256
@@ -308,27 +308,19 @@ Resources:
           ENVIRONMENT: !Ref EnvironmentName
       Code:
         ZipFile: |
-          # Thin bootstrap — actual logic is deployed via S3 in CI/CD.
-          # This inline code is a working placeholder for initial stack creation.
-          import json
-
-          def handler(event, context):
-              path = event.get('rawPath', '')
-              method = event.get('requestContext', {}).get('http', {}).get('method', '')
-              return {
-                  'statusCode': 200,
-                  'headers': {
-                      'Content-Type': 'application/json',
-                      'Access-Control-Allow-Origin': '*'
-                  },
-                  'body': json.dumps({
-                      'service': 'AI Website Generator SaaS',
-                      'version': '0.1.0',
-                      'path': path,
-                      'method': method,
-                      'status': 'placeholder — deploy function code via CI/CD'
-                  })
-              }
+          // Thin bootstrap — actual logic is deployed via CI/CD.
+          exports.handler = async (event) => {
+            return {
+              statusCode: 200,
+              headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+              body: JSON.stringify({
+                service: 'AI Website Generator SaaS',
+                version: '2.0.0-ts',
+                path: event.rawPath || '',
+                status: 'placeholder - deploy function code via CI/CD'
+              })
+            };
+          };
 
   # ──────────────────────────────────────────────
   #  Lambda — Website Generator (long-running)
