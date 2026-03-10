@@ -2222,10 +2222,18 @@
 
     async function regenerateSite(websiteId) {
         try {
-            await apiPost('/websites/' + websiteId + '/publish', {});
+            // Refresh the website data from the API before regenerating
+            var refreshed = await apiGet('/websites/' + websiteId);
             var idx = allWebsites.findIndex(function(w) { return w.websiteId === websiteId; });
+            if (idx >= 0) {
+                // Update local copy with latest data
+                for (var key in refreshed) { allWebsites[idx][key] = refreshed[key]; }
+            }
+            
+            // Now queue for regeneration with latest data
+            await apiPost('/websites/' + websiteId + '/publish', {});
             if (idx >= 0) allWebsites[idx].status = 'generating';
-            toast('Website queued for regeneration!', 'info');
+            toast('Website queued for regeneration with latest changes!', 'success');
             startPolling();
             if (currentPage === 'dashboard') renderDashboard();
             if (currentPage === 'websites') renderWebsitesTable();
