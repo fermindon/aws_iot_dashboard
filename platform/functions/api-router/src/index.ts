@@ -17,6 +17,7 @@ import {
   ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
+import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-cloudfront';
 import { randomUUID } from 'crypto';
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 
@@ -26,6 +27,7 @@ const ddb = DynamoDBDocumentClient.from(ddbClient, {
   marshallOptions: { removeUndefinedValues: true },
 });
 const sqs = new SQSClient({});
+const cf = new CloudFrontClient({});
 
 // ── Environment ─────────────────────────────────────
 const CUSTOMERS_TABLE = process.env.CUSTOMERS_TABLE ?? '';
@@ -34,6 +36,7 @@ const TEMPLATES_TABLE = process.env.TEMPLATES_TABLE ?? '';
 const JOBS_TABLE = process.env.JOBS_TABLE ?? '';
 const GENERATED_BUCKET = process.env.GENERATED_BUCKET ?? '';
 const CDN_DOMAIN = process.env.CDN_DOMAIN ?? '';
+const CDN_DISTRIBUTION_ID = process.env.CDN_DISTRIBUTION_ID ?? '';
 const GENERATION_QUEUE = process.env.GENERATION_QUEUE_URL ?? '';
 const ENVIRONMENT = process.env.ENVIRONMENT ?? 'dev';
 
@@ -521,6 +524,48 @@ async function publishWebsite(websiteId: string): Promise<ApiResponse> {
   });
 }
 
+// ── CloudFront Cache Invalidation ────────────────
+async function invalidateSiteCache(websiteId: string): Promise<ApiResponse> {
+  if (!CDN_DISTRIBUTION_ID) {
+    return resp(500, { error: 'CloudFront distribution not configured' });
+  }
+
+  const query = await ddb.send(
+    new QueryCommand({
+      TableName: WEBSITES_TABLE,
+      IndexName: 'websiteId-index',
+      KeyConditionExpression: 'websiteId = :wid',
+      ExpressionAttributeValues: { ':wid': websiteId },
+    })
+  );
+  const items = query.Items ?? [];
+  if (items.length === 0) return resp(404, { error: 'Website not found' });
+  const website = items[0] as Record<string, unknown>;
+  const customerId = website.customerId as string;
+
+  try {
+    await cf.send(
+      new CreateInvalidationCommand({
+        DistributionId: CDN_DISTRIBUTION_ID,
+        InvalidationBatch: {
+          Paths: {
+            Quantity: 1,
+            Items: [`/${customerId}/${websiteId}/*`],
+          },
+          CallerReference: `inv_${Date.now()}`,
+        },
+      })
+    );
+    return resp(202, {
+      message: 'CloudFront cache invalidation queued',
+      path: `/${customerId}/${websiteId}/*`,
+    });
+  } catch (err) {
+    console.error('[router] CloudFront invalidation failed:', err);
+    return resp(500, { error: 'Failed to invalidate cache' });
+  }
+}
+
 // ── Template Handlers ───────────────────────────────
 async function listTemplates(): Promise<ApiResponse> {
   const result = await ddb.send(new ScanCommand({ TableName: TEMPLATES_TABLE }));
@@ -657,6 +702,11 @@ export async function handler(
     if (path.endsWith('/publish') && method === 'POST') {
       const wid = params.websiteId || path.split('/')[2];
       return await publishWebsite(wid);
+    }
+
+    if (path.endsWith('/invalidate-cache') && method === 'POST') {
+      const wid = params.websiteId || path.split('/')[2];
+      return await invalidateSiteCache(wid);
     }
 
     // ── Templates ────────────────────────────
