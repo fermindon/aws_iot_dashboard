@@ -137,6 +137,9 @@ interface WebsiteItem {
   seo: SeoMeta;
   // ── Analytics ──
   analytics: AnalyticsConfig;
+  // ── AI Generation ──
+  useAI: boolean;
+  aiGeneratedAt: number;
   createdAt: number;
   updatedAt: number;
 }
@@ -315,6 +318,9 @@ async function createWebsite(
       googleAnalyticsId: analytics.googleAnalyticsId || '',
       facebookPixelId: analytics.facebookPixelId || '',
     },
+    // AI Generation
+    useAI: (body.useAI as boolean) || false,
+    aiGeneratedAt: 0,
     createdAt: nowMs(),
     updatedAt: nowMs(),
   };
@@ -400,6 +406,7 @@ async function updateWebsite(
     'styling',
     'seo',
     'analytics',
+    'useAI',
   ];
   const updateParts: string[] = [];
   const values: Record<string, unknown> = {};
