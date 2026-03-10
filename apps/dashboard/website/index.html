@@ -404,6 +404,7 @@
         }
         .photo-upload:focus,
         .image-upload:focus { outline: none; border-color: var(--primary); }
+        .upload-status { display: block; font-size: 0.78rem; color: var(--text-light); margin-top: 0.2rem; }
     </style>
 </head>
 <body>
@@ -1887,30 +1888,30 @@
     // ============================================
     //  REPEATER HELPERS
     // ============================================
-    function handlePhotoUpload(event, id) {
+    function handlePhotoUpload(event) {
         var file = event.target.files[0];
         if (!file) return;
         var reader = new FileReader();
         reader.onload = function(e) {
-            // Find the hidden input for photoUrl and set it
             var item = event.target.closest('.repeater-item');
             var hiddenInput = item.querySelector('input[type="hidden"][data-field="photoUrl"]');
             if (hiddenInput) hiddenInput.value = e.target.result;
-            event.target.nextElementSibling.textContent = '✓ ' + file.name;
+            var status = item.querySelector('.upload-status');
+            if (status) status.textContent = '✓ ' + file.name;
         };
         reader.readAsDataURL(file);
     }
 
-    function handleImageUpload(event, id) {
+    function handleImageUpload(event) {
         var file = event.target.files[0];
         if (!file) return;
         var reader = new FileReader();
         reader.onload = function(e) {
-            // Find the hidden input for imageUrl and set it
             var item = event.target.closest('.repeater-item');
             var hiddenInput = item.querySelector('input[type="hidden"][data-field="imageUrl"]');
             if (hiddenInput) hiddenInput.value = e.target.result;
-            event.target.nextElementSibling.textContent = '✓ ' + file.name;
+            var status = item.querySelector('.upload-status');
+            if (status) status.textContent = '✓ ' + file.name;
         };
         reader.readAsDataURL(file);
     }
@@ -1923,16 +1924,20 @@
 
         var fields = '';
         if (type === 'team') {
+            var photoLabel = data.photoUrl ? '✓ Photo uploaded' : 'Choose photo...';
             fields = '<input placeholder="Name" data-field="name" value="' + esc(data.name || '') + '">' +
                 '<input placeholder="Role / Title" data-field="role" value="' + esc(data.role || '') + '">' +
                 '<textarea placeholder="Short bio..." data-field="bio" rows="2">' + esc(data.bio || '') + '</textarea>' +
-                '<input type="file" accept="image/*" class="photo-upload" data-field="photoUrl" onchange="handlePhotoUpload(event, ' + Math.random() + ')">' +
+                '<input type="file" accept="image/*" class="photo-upload" onchange="handlePhotoUpload(event)">' +
+                '<span class="upload-status">' + photoLabel + '</span>' +
                 '<input type="hidden" data-field="photoUrl" value="' + esc(data.photoUrl || '') + '">';
         } else if (type === 'product') {
+            var imgLabel = data.imageUrl ? '✓ Image uploaded' : 'Choose image...';
             fields = '<input placeholder="Product name" data-field="name" value="' + esc(data.name || '') + '">' +
                 '<input placeholder="Description" data-field="description" value="' + esc(data.description || '') + '">' +
                 '<input placeholder="Price (e.g. $49/mo)" data-field="price" value="' + esc(data.price || '') + '">' +
-                '<input type="file" accept="image/*" class="image-upload" data-field="imageUrl" onchange="handleImageUpload(event, ' + Math.random() + ')">' +
+                '<input type="file" accept="image/*" class="image-upload" onchange="handleImageUpload(event)">' +
+                '<span class="upload-status">' + imgLabel + '</span>' +
                 '<input type="hidden" data-field="imageUrl" value="' + esc(data.imageUrl || '') + '">';
         } else if (type === 'testimonial') {
             fields = '<input placeholder="Author name" data-field="author" value="' + esc(data.author || '') + '">' +
