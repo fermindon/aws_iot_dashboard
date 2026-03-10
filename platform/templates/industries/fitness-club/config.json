@@ -1,0 +1,27 @@
+{
+  "templateId": "fitness-club-v1",
+  "name": "Fitness Club Premium",
+  "industry": "fitness",
+  "version": "1.0.0",
+  "description": "Bold, energetic template designed for gyms, fitness studios, and personal trainers.",
+  "thumbnail": "fitness-club-thumb.png",
+  "colorPresets": [
+    { "name": "Energy",  "primary": "#FF6B35", "secondary": "#F7931E" },
+    { "name": "Power",   "primary": "#E63946", "secondary": "#1D3557" },
+    { "name": "Zen",     "primary": "#2A9D8F", "secondary": "#264653" }
+  ],
+  "sections": [
+    { "id": "hero",         "name": "Hero Section",         "required": true  },
+    { "id": "about",        "name": "About Section",        "required": true  },
+    { "id": "services",     "name": "Services / Classes",   "required": true  },
+    { "id": "testimonials", "name": "Testimonials",         "required": false },
+    { "id": "pricing",      "name": "Pricing Table",        "required": false },
+    { "id": "cta",          "name": "Call to Action",       "required": true  },
+    { "id": "contact",      "name": "Contact Section",      "required": true  }
+  ],
+  "defaultServices": ["Personal Training", "Group Classes", "Yoga & Pilates"],
+  "aiPromptHints": {
+    "tone": "motivational, energetic",
+    "keywords": ["transform", "strength", "results", "goals", "fitness journey"]
+  }
+}

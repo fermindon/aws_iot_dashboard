@@ -1,0 +1,27 @@
+{
+  "templateId": "restaurant-v1",
+  "name": "Restaurant & Café",
+  "industry": "restaurant",
+  "version": "1.0.0",
+  "description": "Warm, inviting template for restaurants, cafés, bakeries, and food service businesses.",
+  "thumbnail": "restaurant-thumb.png",
+  "colorPresets": [
+    { "name": "Rustic",    "primary": "#A0522D", "secondary": "#DEB887" },
+    { "name": "Elegance",  "primary": "#1B1B1B", "secondary": "#C9A96E" },
+    { "name": "Fresh",     "primary": "#2D8A4E", "secondary": "#F4A261" }
+  ],
+  "sections": [
+    { "id": "hero",         "name": "Hero / Banner",     "required": true  },
+    { "id": "about",        "name": "Our Story",         "required": true  },
+    { "id": "menu",         "name": "Menu Highlights",   "required": true  },
+    { "id": "gallery",      "name": "Photo Gallery",     "required": false },
+    { "id": "testimonials", "name": "Reviews",           "required": false },
+    { "id": "cta",          "name": "Reservation CTA",   "required": true  },
+    { "id": "contact",      "name": "Location & Hours",  "required": true  }
+  ],
+  "defaultServices": ["Dine-In", "Takeout", "Catering"],
+  "aiPromptHints": {
+    "tone": "warm, inviting, appetizing",
+    "keywords": ["fresh", "handcrafted", "locally sourced", "family", "tradition"]
+  }
+}

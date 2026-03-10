@@ -1,0 +1,27 @@
+{
+  "templateId": "web-agency-v1",
+  "name": "Web Agency Professional",
+  "industry": "web-agency",
+  "version": "1.0.0",
+  "description": "Modern, sleek template for digital agencies, freelance developers, and design studios.",
+  "thumbnail": "web-agency-thumb.png",
+  "colorPresets": [
+    { "name": "Royal",    "primary": "#6C3CE1", "secondary": "#D4AF37" },
+    { "name": "Midnight", "primary": "#0F172A", "secondary": "#3B82F6" },
+    { "name": "Fresh",    "primary": "#10B981", "secondary": "#059669" }
+  ],
+  "sections": [
+    { "id": "hero",         "name": "Hero Section",     "required": true  },
+    { "id": "about",        "name": "About Section",    "required": true  },
+    { "id": "services",     "name": "Services",         "required": true  },
+    { "id": "portfolio",    "name": "Portfolio / Work",  "required": false },
+    { "id": "testimonials", "name": "Testimonials",      "required": false },
+    { "id": "cta",          "name": "Call to Action",    "required": true  },
+    { "id": "contact",      "name": "Contact Section",   "required": true  }
+  ],
+  "defaultServices": ["Website Design", "Web Development", "SEO & Marketing"],
+  "aiPromptHints": {
+    "tone": "professional, innovative, confident",
+    "keywords": ["digital", "modern", "responsive", "growth", "conversion"]
+  }
+}

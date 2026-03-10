@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Site Gen - Dashboard</title>
+    <style>
+        :root {
+            --primary: #2563EB;
+            --primary-dark: #1E40AF;
+            --primary-light: #DBEAFE;
+            --bg: #f1f5f9;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --text-light: #64748b;
+            --text-lighter: #94a3b8;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-bg: #d1fae5;
+            --warning: #f59e0b;
+            --warning-bg: #fef3c7;
+            --error: #ef4444;
+            --error-bg: #fee2e2;
+            --info: #3b82f6;
+            --info-bg: #dbeafe;
+            --radius: 10px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-lg: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+        a { color: var(--primary); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* ── Sidebar ───────────────────────────── */
+        .sidebar {
+            position: fixed; left: 0; top: 0; bottom: 0; width: 240px;
+            background: var(--text); color: white; padding: 1.5rem 1rem;
+            display: flex; flex-direction: column; z-index: 50;
+            transition: width 0.2s;
+        }
+        .sidebar-brand {
+            font-size: 1.2rem; font-weight: 800; margin-bottom: 2rem; color: white;
+            display: flex; align-items: center; gap: 0.5rem; padding: 0 0.5rem;
+        }
+        .sidebar-brand .accent { color: var(--primary); }
+        .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+        .nav-item {
+            display: flex; align-items: center; gap: 0.75rem; padding: 0.7rem 1rem;
+            color: rgba(255,255,255,0.65); text-decoration: none; border-radius: 8px;
+            cursor: pointer; transition: all 0.15s; font-size: 0.9rem; font-weight: 500;
+            user-select: none;
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.08); color: white; text-decoration: none; }
+        .nav-item.active { background: var(--primary); color: white; }
+        .nav-item .icon { font-size: 1.1rem; width: 24px; text-align: center; flex-shrink: 0; }
+        .sidebar-footer {
+            padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.75rem; color: rgba(255,255,255,0.35); text-align: center;
+        }
+
+        /* ── Main Content ──────────────────────── */
+        .main { margin-left: 240px; padding: 2rem; min-height: 100vh; transition: margin-left 0.2s; }
+
+        .page { display: none; }
+        .page.active { display: block; }
+
+        .page-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 1.75rem; flex-wrap: wrap; gap: 1rem;
+        }
+        .page-header h2 { font-size: 1.5rem; font-weight: 700; }
+        .page-header-sub { color: var(--text-light); font-size: 0.9rem; margin-top: 0.2rem; }
+
+        /* ── Stats Cards ───────────────────────── */
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.25rem; margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: var(--surface); border-radius: var(--radius); padding: 1.25rem 1.5rem;
+            box-shadow: var(--shadow); border-left: 4px solid transparent; transition: 0.2s;
+        }
+        .stat-card:hover { box-shadow: var(--shadow-lg); }
+        .stat-card .label { font-size: 0.8rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+        .stat-card .value { font-size: 2rem; font-weight: 800; margin: 0.25rem 0; }
+        .stat-card .sub { font-size: 0.8rem; color: var(--text-light); }
+        .stat-card.blue { border-left-color: var(--primary); }
+        .stat-card.green { border-left-color: var(--success); }
+        .stat-card.amber { border-left-color: var(--warning); }
+        .stat-card.purple { border-left-color: #8b5cf6; }
+
+        /* ── Card ──────────────────────────────── */
+        .card {
+            background: var(--surface); border-radius: var(--radius);
+            box-shadow: var(--shadow); overflow: hidden;
+        }
+        .card-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1rem 1.5rem; border-bottom: 1px solid var(--border);
+        }
+        .card-header h3 { font-weight: 600; font-size: 1rem; }
+        .card-body { padding: 1.5rem; }
+        .card + .card { margin-top: 1.5rem; }
+
+        /* ── Table ─────────────────────────────── */
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.75rem 1.25rem; text-align: left; }
+        th { font-size: 0.75rem; text-transform: uppercase; color: var(--text-light); font-weight: 600; letter-spacing: 0.5px; background: #f8fafc; }
+        tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
+        tbody tr { transition: background 0.1s; }
+        tbody tr:hover { background: #f8fafc; }
+
+        /* ── Badge ─────────────────────────────── */
+        .badge {
+            display: inline-flex; align-items: center; gap: 0.3rem;
+            padding: 0.2rem 0.7rem; border-radius: 20px;
+            font-size: 0.75rem; font-weight: 600;
+        }
+        .badge-dot::before { content: ''; width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+        .badge-published { background: var(--success-bg); color: #065f46; }
+        .badge-published::before { background: var(--success); }
+        .badge-draft { background: var(--warning-bg); color: #92400e; }
+        .badge-draft::before { background: var(--warning); }
+        .badge-generating { background: var(--info-bg); color: #1e40af; animation: pulse 2s infinite; }
+        .badge-generating::before { background: var(--info); }
+        .badge-error, .badge-failed { background: var(--error-bg); color: #991b1b; }
+        .badge-error::before, .badge-failed::before { background: var(--error); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* ── Buttons ───────────────────────────── */
+        .btn {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.55rem 1.1rem; border: 1px solid var(--border); border-radius: 8px;
+            font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s;
+            background: var(--surface); color: var(--text); text-decoration: none;
+        }
+        .btn:hover { background: #f8fafc; text-decoration: none; }
+        .btn-primary { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+        .btn-danger { background: var(--error); color: white; border-color: var(--error); }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-success { background: var(--success); color: white; border-color: var(--success); }
+        .btn-success:hover { background: #059669; }
+        .btn-sm { padding: 0.35rem 0.7rem; font-size: 0.78rem; }
+        .btn-icon { padding: 0.4rem; min-width: 32px; justify-content: center; }
+        .btn-group { display: flex; gap: 0.5rem; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ── Forms ─────────────────────────────── */
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.3rem; color: var(--text); }
+        .form-group .hint { font-size: 0.75rem; color: var(--text-light); margin-top: 0.2rem; }
+        .form-control {
+            width: 100%; padding: 0.55rem 0.8rem; border: 1px solid var(--border);
+            border-radius: 8px; font-size: 0.9rem; font-family: inherit;
+            transition: border-color 0.15s, box-shadow 0.15s; background: white;
+        }
+        .form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        textarea.form-control { resize: vertical; min-height: 80px; }
+        select.form-control { appearance: auto; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .form-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+
+        /* ── Modal ─────────────────────────────── */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.5);
+            z-index: 100; align-items: center; justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: white; border-radius: 12px; padding: 0;
+            width: 90%; max-width: 580px; max-height: 90vh; overflow: hidden;
+            box-shadow: var(--shadow-lg); animation: modalIn 0.2s ease-out;
+        }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border);
+        }
+        .modal-header h3 { font-size: 1.1rem; font-weight: 700; }
+        .modal-close { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-light); padding: 0.25rem; }
+        .modal-close:hover { color: var(--text); }
+        .modal-body { padding: 1.5rem; overflow-y: auto; max-height: calc(90vh - 140px); }
+        .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; gap: 0.75rem; justify-content: flex-end; }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* ── Toast ─────────────────────────────── */
+        .toast-container {
+            position: fixed; top: 1.5rem; right: 1.5rem; z-index: 200;
+            display: flex; flex-direction: column; gap: 0.5rem;
+        }
+        .toast {
+            display: flex; align-items: center; gap: 0.75rem;
+            padding: 0.85rem 1.25rem; border-radius: 10px;
+            background: var(--surface); color: var(--text);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            animation: toastIn 0.25s ease-out;
+            min-width: 280px; max-width: 420px;
+            font-size: 0.88rem; font-weight: 500;
+        }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--error); }
+        .toast.info { border-left: 4px solid var(--info); }
+        .toast-icon { font-size: 1.2rem; flex-shrink: 0; }
+        .toast-close { margin-left: auto; background: none; border: none; cursor: pointer; color: var(--text-light); font-size: 1.1rem; }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* ── Empty / Loading states ────────────── */
+        .empty-state {
+            text-align: center; padding: 3rem 2rem; color: var(--text-light);
+        }
+        .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
+        .empty-state h4 { font-size: 1.1rem; color: var(--text); margin-bottom: 0.5rem; }
+        .empty-state p { font-size: 0.9rem; margin-bottom: 1.25rem; }
+
+        .loading-spinner {
+            display: inline-block; width: 20px; height: 20px;
+            border: 2px solid var(--border); border-top-color: var(--primary);
+            border-radius: 50%; animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-row td { text-align: center; padding: 2rem; color: var(--text-light); }
+
+        /* ── Template cards ─────────────────────── */
+        .template-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.25rem;
+        }
+        .template-card {
+            background: var(--surface); border-radius: var(--radius);
+            box-shadow: var(--shadow); overflow: hidden; cursor: pointer;
+            transition: all 0.2s; border: 2px solid transparent;
+        }
+        .template-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+        .template-card.selected { border-color: var(--primary); }
+        .template-preview {
+            height: 160px; display: flex; align-items: center; justify-content: center;
+            font-size: 3rem; position: relative;
+        }
+        .template-info { padding: 1rem 1.25rem; }
+        .template-info h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .template-info p { font-size: 0.8rem; color: var(--text-light); }
+        .template-tag {
+            display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px;
+            font-size: 0.7rem; font-weight: 600; background: var(--primary-light); color: var(--primary);
+            margin-top: 0.5rem;
+        }
+
+        /* ── Detail view ───────────────────────── */
+        .detail-grid { display: grid; grid-template-columns: 1fr 360px; gap: 1.5rem; }
+        .detail-section { margin-bottom: 1.5rem; }
+        .detail-section h4 { font-size: 0.85rem; text-transform: uppercase; color: var(--text-light); font-weight: 600; letter-spacing: 0.5px; margin-bottom: 0.75rem; }
+        .detail-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        .detail-row .dl { color: var(--text-light); }
+        .detail-row .dv { font-weight: 600; text-align: right; max-width: 60%; word-break: break-all; }
+        .detail-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+        .back-link { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--text-light); cursor: pointer; margin-bottom: 1rem; }
+        .back-link:hover { color: var(--primary); text-decoration: none; }
+
+        .color-swatch {
+            display: inline-block; width: 20px; height: 20px; border-radius: 4px;
+            border: 1px solid var(--border); vertical-align: middle; margin-right: 0.35rem;
+        }
+
+        /* ── Settings ──────────────────────────── */
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+
+        /* ── Search / Filter bar ───────────────── */
+        .filter-bar {
+            display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;
+        }
+        .search-input {
+            position: relative; flex: 1; min-width: 200px;
+        }
+        .search-input input {
+            width: 100%; padding: 0.55rem 0.8rem 0.55rem 2.2rem;
+            border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem;
+            background: white; transition: border-color 0.15s;
+        }
+        .search-input input:focus { outline: none; border-color: var(--primary); }
+        .search-input::before {
+            content: '\1F50D'; position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%);
+            font-size: 0.85rem; pointer-events: none;
+        }
+        .filter-select {
+            padding: 0.55rem 0.8rem; border: 1px solid var(--border); border-radius: 8px;
+            font-size: 0.85rem; background: white; cursor: pointer;
+        }
+
+        /* ── Confirm Dialog ────────────────────── */
+        .confirm-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.5);
+            z-index: 150; align-items: center; justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .confirm-overlay.active { display: flex; }
+        .confirm-box {
+            background: white; border-radius: 12px; padding: 2rem;
+            width: 90%; max-width: 400px; text-align: center;
+            box-shadow: var(--shadow-lg); animation: modalIn 0.2s ease-out;
+        }
+        .confirm-box .icon { font-size: 2.5rem; margin-bottom: 1rem; }
+        .confirm-box h3 { margin-bottom: 0.5rem; }
+        .confirm-box p { color: var(--text-light); font-size: 0.9rem; margin-bottom: 1.5rem; }
+        .confirm-actions { display: flex; gap: 0.75rem; justify-content: center; }
+
+        /* ── Responsive ────────────────────────── */
+        @media (max-width: 1024px) {
+            .detail-grid { grid-template-columns: 1fr; }
+            .settings-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 768px) {
+            .sidebar { width: 60px; padding: 1rem 0.5rem; }
+            .sidebar-brand span, .nav-item .label { display: none; }
+            .main { margin-left: 60px; padding: 1.25rem; }
+            .form-row { grid-template-columns: 1fr; }
+            table { font-size: 0.82rem; }
+            th, td { padding: 0.6rem 0.75rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Confirm Dialog -->
+    <div class="confirm-overlay" id="confirm-overlay">
+        <div class="confirm-box">
+            <div class="icon" id="confirm-icon">&#9888;&#65039;</div>
+            <h3 id="confirm-title">Are you sure?</h3>
+            <p id="confirm-message">This action cannot be undone.</p>
+            <div class="confirm-actions">
+                <button class="btn" onclick="closeConfirm()">Cancel</button>
+                <button class="btn btn-danger" id="confirm-btn" onclick="confirmAction()">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <span class="accent">AI</span> <span>Site Gen</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a class="nav-item active" data-page="dashboard">
+                <span class="icon">&#128202;</span> <span class="label">Dashboard</span>
+            </a>
+            <a class="nav-item" data-page="websites">
+                <span class="icon">&#127760;</span> <span class="label">Websites</span>
+            </a>
+            <a class="nav-item" data-page="templates">
+                <span class="icon">&#128196;</span> <span class="label">Templates</span>
+            </a>
+            <a class="nav-item" data-page="settings">
+                <span class="icon">&#9881;&#65039;</span> <span class="label">Settings</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">AI Site Gen v1.0</div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main">
+
+        <!-- ============ DASHBOARD PAGE ============ -->
+        <div id="page-dashboard" class="page active">
+            <div class="page-header">
+                <div>
+                    <h2>Dashboard</h2>
+                    <div class="page-header-sub">Overview of your websites and usage</div>
+                </div>
+                <button class="btn btn-primary" onclick="openNewSiteModal()">+ New Website</button>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card blue">
+                    <div class="label">Total Websites</div>
+                    <div class="value" id="stat-websites">-</div>
+                    <div class="sub" id="stat-websites-sub"></div>
+                </div>
+                <div class="stat-card green">
+                    <div class="label">Published</div>
+                    <div class="value" id="stat-published">-</div>
+                    <div class="sub" id="stat-published-sub"></div>
+                </div>
+                <div class="stat-card amber">
+                    <div class="label">AI Generations</div>
+                    <div class="value" id="stat-generations">-</div>
+                    <div class="sub" id="stat-gen-sub"></div>
+                </div>
+                <div class="stat-card purple">
+                    <div class="label">Plan</div>
+                    <div class="value" id="stat-tier">-</div>
+                    <div class="sub" id="stat-tier-sub"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Recent Websites</h3>
+                    <button class="btn btn-sm" onclick="navigateTo('websites')">View All</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Business Name</th>
+                            <th>Industry</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dashboard-table-body">
+                        <tr class="loading-row"><td colspan="5"><span class="loading-spinner"></span> Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ============ WEBSITES PAGE ============ -->
+        <div id="page-websites" class="page">
+            <div class="page-header">
+                <div>
+                    <h2>Websites</h2>
+                    <div class="page-header-sub">Manage all your generated websites</div>
+                </div>
+                <button class="btn btn-primary" onclick="openNewSiteModal()">+ New Website</button>
+            </div>
+
+            <div class="card" style="margin-bottom: 1.25rem; padding: 1rem 1.25rem;">
+                <div class="filter-bar">
+                    <div class="search-input">
+                        <input type="text" id="website-search" placeholder="Search websites..." oninput="filterWebsites()">
+                    </div>
+                    <select class="filter-select" id="website-status-filter" onchange="filterWebsites()">
+                        <option value="">All Status</option>
+                        <option value="published">Published</option>
+                        <option value="draft">Draft</option>
+                        <option value="generating">Generating</option>
+                    </select>
+                    <select class="filter-select" id="website-industry-filter" onchange="filterWebsites()">
+                        <option value="">All Industries</option>
+                        <option value="fitness">Fitness</option>
+                        <option value="web-agency">Web Agency</option>
+                        <option value="restaurant">Restaurant</option>
+                        <option value="general">General</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Business Name</th>
+                            <th>Industry</th>
+                            <th>Template</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th style="text-align:right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="websites-table-body">
+                        <tr class="loading-row"><td colspan="6"><span class="loading-spinner"></span> Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ============ WEBSITE DETAIL PAGE ============ -->
+        <div id="page-website-detail" class="page">
+            <a class="back-link" onclick="navigateTo('websites')">&#8592; Back to Websites</a>
+            <div class="page-header">
+                <div>
+                    <h2 id="detail-title">Website Details</h2>
+                    <div class="page-header-sub" id="detail-subtitle"></div>
+                </div>
+                <div id="detail-status-badge"></div>
+            </div>
+            <div class="detail-actions" id="detail-actions"></div>
+            <div class="detail-grid">
+                <div>
+                    <div class="card">
+                        <div class="card-header"><h3>Business Information</h3></div>
+                        <div class="card-body" id="detail-business-info"></div>
+                    </div>
+                    <div class="card" style="margin-top:1.25rem;">
+                        <div class="card-header"><h3>Contact</h3></div>
+                        <div class="card-body" id="detail-contact-info"></div>
+                    </div>
+                    <div class="card" style="margin-top:1.25rem;">
+                        <div class="card-header"><h3>Services</h3></div>
+                        <div class="card-body" id="detail-services"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="card">
+                        <div class="card-header"><h3>Branding</h3></div>
+                        <div class="card-body" id="detail-branding"></div>
+                    </div>
+                    <div class="card" style="margin-top:1.25rem;">
+                        <div class="card-header"><h3>Metadata</h3></div>
+                        <div class="card-body" id="detail-meta"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ TEMPLATES PAGE ============ -->
+        <div id="page-templates" class="page">
+            <div class="page-header">
+                <div>
+                    <h2>Templates</h2>
+                    <div class="page-header-sub">Browse available website templates for each industry</div>
+                </div>
+            </div>
+            <div class="card" style="margin-bottom: 1.25rem; padding: 1rem 1.25rem;">
+                <div class="filter-bar">
+                    <div class="search-input">
+                        <input type="text" id="template-search" placeholder="Search templates..." oninput="filterTemplates()">
+                    </div>
+                    <select class="filter-select" id="template-industry-filter" onchange="filterTemplates()">
+                        <option value="">All Industries</option>
+                    </select>
+                </div>
+            </div>
+            <div class="template-grid" id="templates-grid">
+                <div class="empty-state">
+                    <span class="loading-spinner"></span>
+                    <p style="margin-top:1rem;">Loading templates...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ SETTINGS PAGE ============ -->
+        <div id="page-settings" class="page">
+            <div class="page-header">
+                <div>
+                    <h2>Settings</h2>
+                    <div class="page-header-sub">Manage your account and API configuration</div>
+                </div>
+            </div>
+            <div class="settings-grid">
+                <div>
+                    <div class="card">
+                        <div class="card-header"><h3>Account Information</h3></div>
+                        <div class="card-body">
+                            <form id="settings-form" onsubmit="return saveSettings(event)">
+                                <div class="form-group">
+                                    <label>Company Name</label>
+                                    <input type="text" class="form-control" id="s-company" placeholder="Your company name">
+                                </div>
+                                <div class="form-group">
+                                    <label>Email</label>
+                                    <input type="email" class="form-control" id="s-email" placeholder="you@example.com">
+                                </div>
+                                <div class="form-group">
+                                    <label>Subscription Tier</label>
+                                    <select class="form-control" id="s-tier">
+                                        <option value="starter">Starter (50 generations/mo)</option>
+                                        <option value="professional">Professional (250 generations/mo)</option>
+                                        <option value="enterprise">Enterprise (Unlimited)</option>
+                                    </select>
+                                </div>
+                                <div class="form-actions" style="border:none; padding-top:0.5rem;">
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="card">
+                        <div class="card-header"><h3>API Configuration</h3></div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>API Endpoint</label>
+                                <input type="text" class="form-control" id="s-api-endpoint" readonly style="background:#f8fafc; cursor:text;">
+                            </div>
+                            <div class="form-group">
+                                <label>Customer ID</label>
+                                <input type="text" class="form-control" id="s-customer-id" readonly style="background:#f8fafc; cursor:text;">
+                            </div>
+                            <div class="form-group">
+                                <label>CDN Domain</label>
+                                <input type="text" class="form-control" id="s-cdn-domain" readonly style="background:#f8fafc; cursor:text;">
+                            </div>
+                            <div class="form-group">
+                                <label>API Health</label>
+                                <div id="s-api-health" style="font-size:0.9rem;">
+                                    <span class="loading-spinner" style="width:16px;height:16px;"></span> Checking...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card" style="margin-top:1.25rem;">
+                        <div class="card-header"><h3>Usage</h3></div>
+                        <div class="card-body">
+                            <div class="detail-section">
+                                <div class="detail-row">
+                                    <span class="dl">Websites Created</span>
+                                    <span class="dv" id="s-usage-websites">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="dl">AI Generations Used</span>
+                                    <span class="dv" id="s-usage-gen">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="dl">Generation Limit</span>
+                                    <span class="dv" id="s-usage-limit">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Website Modal -->
+    <div class="modal-overlay" id="new-site-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Create New Website</h3>
+                <button class="modal-close" onclick="closeModal('new-site-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="new-site-form" onsubmit="return createWebsite(event)">
+                    <div class="form-group">
+                        <label>Business Name *</label>
+                        <input type="text" class="form-control" id="f-business-name" required placeholder="e.g. FitZone Gym">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Industry *</label>
+                            <select class="form-control" id="f-industry" required>
+                                <option value="">Select industry...</option>
+                                <option value="fitness">Fitness / Gym</option>
+                                <option value="web-agency">Web Agency / Tech</option>
+                                <option value="restaurant">Restaurant / Cafe</option>
+                                <option value="general">General Business</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Template</label>
+                            <select class="form-control" id="f-template">
+                                <option value="">Auto-select by industry</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea class="form-control" id="f-description" placeholder="Briefly describe the business and what makes it unique..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Services</label>
+                        <input type="text" class="form-control" id="f-services" placeholder="Personal Training, Group Classes, Yoga">
+                        <div class="hint">Separate each service with a comma</div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Primary Color</label>
+                            <div style="display:flex;gap:0.5rem;align-items:center;">
+                                <input type="color" id="f-primary" value="#2563EB" style="width:40px;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer;">
+                                <input type="text" class="form-control" id="f-primary-text" value="#2563EB" style="flex:1;" oninput="document.getElementById('f-primary').value=this.value">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Secondary Color</label>
+                            <div style="display:flex;gap:0.5rem;align-items:center;">
+                                <input type="color" id="f-secondary" value="#1E40AF" style="width:40px;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer;">
+                                <input type="text" class="form-control" id="f-secondary-text" value="#1E40AF" style="flex:1;" oninput="document.getElementById('f-secondary').value=this.value">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Contact Email</label>
+                            <input type="email" class="form-control" id="f-email" placeholder="info@business.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Phone</label>
+                            <input type="tel" class="form-control" id="f-phone" placeholder="+1 (555) 123-4567">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Address</label>
+                        <input type="text" class="form-control" id="f-address" placeholder="123 Main St, City, State">
+                    </div>
+                    <div style="display:flex; gap:0.75rem; justify-content:flex-end; margin-top:1.5rem;">
+                        <button type="button" class="btn" onclick="closeModal('new-site-modal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="create-btn">Create &amp; Generate</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Website Modal -->
+    <div class="modal-overlay" id="edit-site-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Edit Website</h3>
+                <button class="modal-close" onclick="closeModal('edit-site-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-site-form" onsubmit="return updateWebsite(event)">
+                    <input type="hidden" id="e-website-id">
+                    <div class="form-group">
+                        <label>Business Name *</label>
+                        <input type="text" class="form-control" id="e-business-name" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Industry</label>
+                            <select class="form-control" id="e-industry">
+                                <option value="fitness">Fitness / Gym</option>
+                                <option value="web-agency">Web Agency / Tech</option>
+                                <option value="restaurant">Restaurant / Cafe</option>
+                                <option value="general">General Business</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Template</label>
+                            <select class="form-control" id="e-template">
+                                <option value="">Auto-select</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea class="form-control" id="e-description"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Services</label>
+                        <input type="text" class="form-control" id="e-services">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Primary Color</label>
+                            <div style="display:flex;gap:0.5rem;align-items:center;">
+                                <input type="color" id="e-primary" style="width:40px;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer;">
+                                <input type="text" class="form-control" id="e-primary-text" style="flex:1;" oninput="document.getElementById('e-primary').value=this.value">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Secondary Color</label>
+                            <div style="display:flex;gap:0.5rem;align-items:center;">
+                                <input type="color" id="e-secondary" style="width:40px;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer;">
+                                <input type="text" class="form-control" id="e-secondary-text" style="flex:1;" oninput="document.getElementById('e-secondary').value=this.value">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" class="form-control" id="e-email">
+                        </div>
+                        <div class="form-group">
+                            <label>Phone</label>
+                            <input type="tel" class="form-control" id="e-phone">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Address</label>
+                        <input type="text" class="form-control" id="e-address">
+                    </div>
+                    <div style="display:flex; gap:0.75rem; justify-content:flex-end; margin-top:1.5rem;">
+                        <button type="button" class="btn" onclick="closeModal('edit-site-modal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template Detail Modal -->
+    <div class="modal-overlay" id="template-detail-modal">
+        <div class="modal" style="max-width:640px;">
+            <div class="modal-header">
+                <h3 id="tpl-detail-name">Template</h3>
+                <button class="modal-close" onclick="closeModal('template-detail-modal')">&times;</button>
+            </div>
+            <div class="modal-body" id="tpl-detail-body"></div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('template-detail-modal')">Close</button>
+                <button class="btn btn-primary" id="tpl-use-btn" onclick="useTemplate()">Use This Template</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ============================================
+    //  CONFIG & STATE
+    // ============================================
+    var API_BASE = '';
+    var CUSTOMER_ID = '';
+    var CDN_DOMAIN = '';
+    var allWebsites = [];
+    var allTemplates = [];
+    var customerData = null;
+    var currentPage = 'dashboard';
+    var currentDetailWebsite = null;
+    var selectedTemplateId = null;
+    var pendingConfirmCallback = null;
+    var pollingInterval = null;
+
+    // ============================================
+    //  INIT
+    // ============================================
+    async function init() {
+        await loadConfig();
+        setupNavigation();
+        setupColorSync();
+        await loadAllData();
+    }
+
+    async function loadConfig() {
+        try {
+            var resp = await fetch('config.json');
+            var cfg = await resp.json();
+            API_BASE = cfg.apiEndpoint || '';
+            CUSTOMER_ID = cfg.customerId || '';
+            CDN_DOMAIN = cfg.cdnDomain || '';
+        } catch (e) {
+            console.warn('Config not loaded:', e);
+        }
+    }
+
+    function setupNavigation() {
+        document.querySelectorAll('.nav-item[data-page]').forEach(function(item) {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                navigateTo(item.dataset.page);
+            });
+        });
+    }
+
+    function setupColorSync() {
+        ['f-primary', 'f-secondary', 'e-primary', 'e-secondary'].forEach(function(id) {
+            var picker = document.getElementById(id);
+            if (picker) {
+                picker.addEventListener('input', function(e) {
+                    var textEl = document.getElementById(id + '-text');
+                    if (textEl) textEl.value = e.target.value;
+                });
+            }
+        });
+    }
+
+    // ============================================
+    //  NAVIGATION
+    // ============================================
+    function navigateTo(page, data) {
+        document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+        document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+
+        currentPage = page;
+
+        var pageEl = document.getElementById('page-' + page);
+        if (pageEl) pageEl.classList.add('active');
+
+        var navEl = document.querySelector('.nav-item[data-page="' + page + '"]');
+        if (navEl) navEl.classList.add('active');
+
+        switch(page) {
+            case 'dashboard': loadDashboard(); break;
+            case 'websites': loadWebsites(); break;
+            case 'website-detail': loadWebsiteDetail(data); break;
+            case 'templates': loadTemplates(); break;
+            case 'settings': loadSettings(); break;
+        }
+    }
+
+    // ============================================
+    //  API HELPERS
+    // ============================================
+    async function apiGet(path) {
+        var resp = await fetch(API_BASE + path);
+        if (!resp.ok) {
+            var err = await resp.json().catch(function() { return {}; });
+            throw new Error(err.error || 'HTTP ' + resp.status);
+        }
+        return resp.json();
+    }
+
+    async function apiPost(path, body) {
+        var resp = await fetch(API_BASE + path, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (!resp.ok && resp.status !== 201 && resp.status !== 202) {
+            var err = await resp.json().catch(function() { return {}; });
+            throw new Error(err.error || 'HTTP ' + resp.status);
+        }
+        return resp.json();
+    }
+
+    async function apiPut(path, body) {
+        var resp = await fetch(API_BASE + path, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (!resp.ok) {
+            var err = await resp.json().catch(function() { return {}; });
+            throw new Error(err.error || 'HTTP ' + resp.status);
+        }
+        return resp.json();
+    }
+
+    async function apiDelete(path) {
+        var resp = await fetch(API_BASE + path, { method: 'DELETE' });
+        if (!resp.ok) {
+            var err = await resp.json().catch(function() { return {}; });
+            throw new Error(err.error || 'HTTP ' + resp.status);
+        }
+        return resp.json();
+    }
+
+    // ============================================
+    //  LOAD ALL DATA
+    // ============================================
+    async function loadAllData() {
+        if (!API_BASE) return;
+        try {
+            var results = await Promise.all([
+                apiGet('/customers/' + CUSTOMER_ID + '/websites').catch(function() { return { websites: [] }; }),
+                apiGet('/templates').catch(function() { return { templates: [] }; }),
+                apiGet('/customers/' + CUSTOMER_ID).catch(function() { return null; })
+            ]);
+            allWebsites = results[0].websites || [];
+            allTemplates = results[1].templates || [];
+            customerData = results[2];
+
+            populateTemplateDropdowns();
+            loadDashboard();
+            startPolling();
+        } catch (e) {
+            console.error('Failed to load data:', e);
+            toast('Failed to load data from API', 'error');
+        }
+    }
+
+    function populateTemplateDropdowns() {
+        ['f-template', 'e-template'].forEach(function(id) {
+            var sel = document.getElementById(id);
+            sel.innerHTML = '<option value="">Auto-select by industry</option>';
+            allTemplates.forEach(function(t) {
+                sel.innerHTML += '<option value="' + t.templateId + '">' + esc(t.name || t.templateId) + '</option>';
+            });
+        });
+        var industries = [];
+        allTemplates.forEach(function(t) {
+            if (t.industry && industries.indexOf(t.industry) === -1) industries.push(t.industry);
+        });
+        var indFilter = document.getElementById('template-industry-filter');
+        indFilter.innerHTML = '<option value="">All Industries</option>';
+        industries.forEach(function(i) {
+            indFilter.innerHTML += '<option value="' + i + '">' + capitalize(i) + '</option>';
+        });
+    }
+
+    // ============================================
+    //  POLLING (for generating websites)
+    // ============================================
+    function startPolling() {
+        stopPolling();
+        var hasGenerating = allWebsites.some(function(w) { return w.status === 'generating'; });
+        if (hasGenerating) {
+            pollingInterval = setInterval(async function() {
+                try {
+                    var data = await apiGet('/customers/' + CUSTOMER_ID + '/websites');
+                    var oldGenerating = allWebsites.filter(function(w) { return w.status === 'generating'; }).map(function(w) { return w.websiteId; });
+                    allWebsites = data.websites || [];
+
+                    oldGenerating.forEach(function(wid) {
+                        var updated = allWebsites.find(function(w) { return w.websiteId === wid; });
+                        if (updated && updated.status !== 'generating') {
+                            toast('"' + updated.businessName + '" is now ' + updated.status + '!', updated.status === 'published' ? 'success' : 'info');
+                        }
+                    });
+
+                    if (currentPage === 'dashboard') renderDashboard();
+                    if (currentPage === 'websites') renderWebsitesTable();
+                    if (currentPage === 'website-detail' && currentDetailWebsite) {
+                        var upd = allWebsites.find(function(w) { return w.websiteId === currentDetailWebsite.websiteId; });
+                        if (upd) renderWebsiteDetail(upd);
+                    }
+                    if (!allWebsites.some(function(w) { return w.status === 'generating'; })) {
+                        stopPolling();
+                    }
+                } catch (e) { /* silent */ }
+            }, 5000);
+        }
+    }
+
+    function stopPolling() {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+        }
+    }
+
+    // ============================================
+    //  DASHBOARD PAGE
+    // ============================================
+    function loadDashboard() {
+        renderDashboard();
+    }
+
+    function renderDashboard() {
+        var total = allWebsites.length;
+        var published = allWebsites.filter(function(w) { return w.status === 'published'; }).length;
+        var generating = allWebsites.filter(function(w) { return w.status === 'generating'; }).length;
+        var drafts = allWebsites.filter(function(w) { return w.status === 'draft'; }).length;
+
+        document.getElementById('stat-websites').textContent = total;
+        document.getElementById('stat-websites-sub').textContent =
+            generating > 0 ? generating + ' generating...' : drafts + ' draft' + (drafts !== 1 ? 's' : '');
+
+        document.getElementById('stat-published').textContent = published;
+        document.getElementById('stat-published-sub').textContent =
+            total > 0 ? Math.round(published / total * 100) + '% of total' : 'No websites yet';
+
+        var genUsed = (customerData && customerData.aiGenerationsUsed) || 0;
+        var genLimit = (customerData && customerData.aiGenerationsLimit) || 50;
+        document.getElementById('stat-generations').textContent = genUsed;
+        document.getElementById('stat-gen-sub').textContent = (genLimit - genUsed) + ' remaining';
+
+        var tier = (customerData && customerData.subscriptionTier) || 'starter';
+        document.getElementById('stat-tier').textContent = capitalize(tier);
+        document.getElementById('stat-tier-sub').textContent = genLimit + ' generations/mo';
+
+        var tbody = document.getElementById('dashboard-table-body');
+        var recent = allWebsites.slice().sort(function(a, b) { return (b.createdAt || 0) - (a.createdAt || 0); }).slice(0, 5);
+
+        if (recent.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5">' +
+                '<div class="empty-state">' +
+                '<div class="icon">&#127760;</div>' +
+                '<h4>No websites yet</h4>' +
+                '<p>Create your first AI-generated website to get started.</p>' +
+                '<button class="btn btn-primary" onclick="openNewSiteModal()">+ New Website</button>' +
+                '</div></td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = recent.map(function(w) {
+            return '<tr style="cursor:pointer" onclick="navigateTo(\'website-detail\', \'' + w.websiteId + '\')">' +
+                '<td><strong>' + esc(w.businessName || '-') + '</strong></td>' +
+                '<td>' + capitalize(w.industry || '-') + '</td>' +
+                '<td><span class="badge badge-dot badge-' + w.status + '">' + w.status + '</span></td>' +
+                '<td>' + formatDate(w.createdAt) + '</td>' +
+                '<td>' +
+                '<div class="btn-group" onclick="event.stopPropagation()">' +
+                (w.liveUrl ? '<a href="' + w.liveUrl + '" target="_blank" class="btn btn-sm btn-success">Visit</a>' : '') +
+                (w.status === 'draft' ? '<button class="btn btn-sm btn-primary" onclick="publishSite(\'' + w.websiteId + '\')">Publish</button>' : '') +
+                '</div></td></tr>';
+        }).join('');
+    }
+
+    // ============================================
+    //  WEBSITES PAGE
+    // ============================================
+    function loadWebsites() {
+        renderWebsitesTable();
+    }
+
+    function filterWebsites() {
+        renderWebsitesTable();
+    }
+
+    function renderWebsitesTable() {
+        var search = document.getElementById('website-search').value.toLowerCase();
+        var statusFilter = document.getElementById('website-status-filter').value;
+        var industryFilter = document.getElementById('website-industry-filter').value;
+
+        var filtered = allWebsites.filter(function(w) {
+            if (search && (w.businessName || '').toLowerCase().indexOf(search) === -1 && (w.industry || '').toLowerCase().indexOf(search) === -1) return false;
+            if (statusFilter && w.status !== statusFilter) return false;
+            if (industryFilter && w.industry !== industryFilter) return false;
+            return true;
+        });
+
+        filtered.sort(function(a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+
+        var tbody = document.getElementById('websites-table-body');
+        if (filtered.length === 0) {
+            var hasFilters = search || statusFilter || industryFilter;
+            tbody.innerHTML = '<tr><td colspan="6">' +
+                '<div class="empty-state">' +
+                '<div class="icon">' + (hasFilters ? '&#128269;' : '&#127760;') + '</div>' +
+                '<h4>' + (hasFilters ? 'No matching websites' : 'No websites yet') + '</h4>' +
+                '<p>' + (hasFilters ? 'Try adjusting your search or filters.' : 'Create your first AI-generated website.') + '</p>' +
+                (!hasFilters ? '<button class="btn btn-primary" onclick="openNewSiteModal()">+ New Website</button>' : '') +
+                '</div></td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = filtered.map(function(w) {
+            return '<tr>' +
+                '<td><a style="cursor:pointer;font-weight:600;" onclick="navigateTo(\'website-detail\', \'' + w.websiteId + '\')">' + esc(w.businessName || '-') + '</a></td>' +
+                '<td>' + capitalize(w.industry || '-') + '</td>' +
+                '<td><span style="font-size:0.82rem;color:var(--text-light);">' + (w.templateId || '-') + '</span></td>' +
+                '<td><span class="badge badge-dot badge-' + w.status + '">' + w.status + '</span></td>' +
+                '<td>' + formatDate(w.createdAt) + '</td>' +
+                '<td style="text-align:right"><div class="btn-group" style="justify-content:flex-end;">' +
+                (w.liveUrl ? '<a href="' + w.liveUrl + '" target="_blank" class="btn btn-sm btn-success" title="Visit site">Visit</a>' : '') +
+                (w.status === 'draft' ? '<button class="btn btn-sm btn-primary" onclick="publishSite(\'' + w.websiteId + '\')" title="Publish">Publish</button>' : '') +
+                (w.status === 'published' ? '<button class="btn btn-sm" onclick="regenerateSite(\'' + w.websiteId + '\')" title="Regenerate">Regen</button>' : '') +
+                '<button class="btn btn-sm" onclick="openEditModal(\'' + w.websiteId + '\')" title="Edit">Edit</button>' +
+                '<button class="btn btn-sm" onclick="confirmDeleteSite(\'' + w.websiteId + '\', \'' + esc(w.businessName || '') + '\')" title="Delete" style="color:var(--error);">Del</button>' +
+                '</div></td></tr>';
+        }).join('');
+    }
+
+    // ============================================
+    //  WEBSITE DETAIL PAGE
+    // ============================================
+    async function loadWebsiteDetail(websiteId) {
+        if (!websiteId) return navigateTo('websites');
+        try {
+            var website = allWebsites.find(function(w) { return w.websiteId === websiteId; });
+            if (!website) website = await apiGet('/websites/' + websiteId);
+            currentDetailWebsite = website;
+            renderWebsiteDetail(website);
+        } catch (e) {
+            toast('Failed to load website details', 'error');
+            navigateTo('websites');
+        }
+    }
+
+    function renderWebsiteDetail(w) {
+        currentDetailWebsite = w;
+        document.getElementById('detail-title').textContent = w.businessName || 'Unnamed Website';
+        document.getElementById('detail-subtitle').textContent = capitalize(w.industry || 'Unknown') + ' \u2014 ' + w.websiteId;
+        document.getElementById('detail-status-badge').innerHTML = '<span class="badge badge-dot badge-' + w.status + '">' + w.status + '</span>';
+
+        var actions = '';
+        if (w.liveUrl) actions += '<a href="' + w.liveUrl + '" target="_blank" class="btn btn-success">Visit Live Site</a>';
+        if (w.status === 'draft') actions += '<button class="btn btn-primary" onclick="publishSite(\'' + w.websiteId + '\')">Publish &amp; Generate</button>';
+        if (w.status === 'published') actions += '<button class="btn btn-primary" onclick="regenerateSite(\'' + w.websiteId + '\')">Regenerate</button>';
+        actions += '<button class="btn" onclick="openEditModal(\'' + w.websiteId + '\')">Edit</button>';
+        actions += '<button class="btn btn-danger" onclick="confirmDeleteSite(\'' + w.websiteId + '\', \'' + esc(w.businessName || '') + '\')">Delete</button>';
+        document.getElementById('detail-actions').innerHTML = actions;
+
+        document.getElementById('detail-business-info').innerHTML =
+            '<div class="detail-section">' +
+            '<div class="detail-row"><span class="dl">Business Name</span><span class="dv">' + esc(w.businessName || '-') + '</span></div>' +
+            '<div class="detail-row"><span class="dl">Industry</span><span class="dv">' + capitalize(w.industry || '-') + '</span></div>' +
+            '<div class="detail-row"><span class="dl">Template</span><span class="dv">' + (w.templateId || '-') + '</span></div>' +
+            '<div class="detail-row"><span class="dl">Description</span><span class="dv">' + esc(w.description || 'No description') + '</span></div>' +
+            '</div>';
+
+        var contact = w.contact || {};
+        document.getElementById('detail-contact-info').innerHTML =
+            '<div class="detail-section">' +
+            '<div class="detail-row"><span class="dl">Email</span><span class="dv">' + esc(contact.email || '-') + '</span></div>' +
+            '<div class="detail-row"><span class="dl">Phone</span><span class="dv">' + esc(contact.phone || '-') + '</span></div>' +
+            '<div class="detail-row"><span class="dl">Address</span><span class="dv">' + esc(contact.address || '-') + '</span></div>' +
+            '</div>';
+
+        var services = w.services || [];
+        document.getElementById('detail-services').innerHTML = services.length > 0
+            ? services.map(function(s) { return '<span class="badge" style="background:var(--primary-light);color:var(--primary);margin:0.2rem;">' + esc(s) + '</span>'; }).join(' ')
+            : '<span style="color:var(--text-light);font-size:0.9rem;">No services listed</span>';
+
+        var branding = w.branding || {};
+        document.getElementById('detail-branding').innerHTML =
+            '<div class="detail-section">' +
+            '<div class="detail-row"><span class="dl">Logo Text</span><span class="dv">' + esc(branding.logoText || '-') + '</span></div>' +
+            '<div class="detail-row"><span class="dl">Primary</span><span class="dv"><span class="color-swatch" style="background:' + (branding.primaryColor || '#2563EB') + '"></span>' + (branding.primaryColor || '-') + '</span></div>' +
+            '<div class="detail-row"><span class="dl">Secondary</span><span class="dv"><span class="color-swatch" style="background:' + (branding.secondaryColor || '#1E40AF') + '"></span>' + (branding.secondaryColor || '-') + '</span></div>' +
+            '</div>';
+
+        document.getElementById('detail-meta').innerHTML =
+            '<div class="detail-section">' +
+            '<div class="detail-row"><span class="dl">Website ID</span><span class="dv" style="font-family:monospace;font-size:0.78rem;">' + w.websiteId + '</span></div>' +
+            '<div class="detail-row"><span class="dl">Customer ID</span><span class="dv" style="font-family:monospace;font-size:0.78rem;">' + w.customerId + '</span></div>' +
+            '<div class="detail-row"><span class="dl">Created</span><span class="dv">' + formatDate(w.createdAt) + '</span></div>' +
+            '<div class="detail-row"><span class="dl">Updated</span><span class="dv">' + formatDate(w.updatedAt) + '</span></div>' +
+            (w.liveUrl ? '<div class="detail-row"><span class="dl">Live URL</span><span class="dv"><a href="' + w.liveUrl + '" target="_blank">' + w.liveUrl + '</a></span></div>' : '') +
+            '</div>';
+    }
+
+    // ============================================
+    //  TEMPLATES PAGE
+    // ============================================
+    function loadTemplates() {
+        renderTemplatesGrid();
+    }
+
+    function filterTemplates() {
+        renderTemplatesGrid();
+    }
+
+    function renderTemplatesGrid() {
+        var search = document.getElementById('template-search').value.toLowerCase();
+        var industryFilter = document.getElementById('template-industry-filter').value;
+
+        var filtered = allTemplates.filter(function(t) {
+            if (search && (t.name || '').toLowerCase().indexOf(search) === -1 && (t.industry || '').toLowerCase().indexOf(search) === -1) return false;
+            if (industryFilter && t.industry !== industryFilter) return false;
+            return true;
+        });
+
+        var grid = document.getElementById('templates-grid');
+        if (filtered.length === 0) {
+            grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">' +
+                '<div class="icon">&#128196;</div>' +
+                '<h4>No templates found</h4>' +
+                '<p>' + (search || industryFilter ? 'Try different search criteria.' : 'No templates have been loaded yet.') + '</p>' +
+                '</div>';
+            return;
+        }
+
+        var industryColors = { 'fitness-club': '#ef4444', 'fitness': '#ef4444', 'web-agency': '#3b82f6', 'restaurant': '#f59e0b', 'general': '#8b5cf6' };
+        var industryIcons = { 'fitness-club': '\uD83D\uDCAA', 'fitness': '\uD83D\uDCAA', 'web-agency': '\uD83D\uDCBB', 'restaurant': '\uD83C\uDF7D\uFE0F', 'general': '\uD83C\uDFE2' };
+
+        grid.innerHTML = filtered.map(function(t) {
+            var color = industryColors[t.industry] || '#64748b';
+            var icon = industryIcons[t.industry] || '\uD83D\uDCC4';
+            var sections = t.sections || [];
+            return '<div class="template-card" onclick="openTemplateDetail(\'' + t.templateId + '\')">' +
+                '<div class="template-preview" style="background: linear-gradient(135deg, ' + color + '22, ' + color + '11);">' + icon + '</div>' +
+                '<div class="template-info">' +
+                '<h4>' + esc(t.name || t.templateId) + '</h4>' +
+                '<p>' + esc(t.description || 'No description') + '</p>' +
+                '<div style="margin-top:0.5rem;">' +
+                '<span class="template-tag">' + capitalize(t.industry || 'General') + '</span>' +
+                (sections.length ? ' <span class="template-tag" style="background:#f1f5f9;color:var(--text-light);">' + sections.length + ' sections</span>' : '') +
+                '</div></div></div>';
+        }).join('');
+    }
+
+    function openTemplateDetail(templateId) {
+        var t = allTemplates.find(function(x) { return x.templateId === templateId; });
+        if (!t) return;
+        selectedTemplateId = templateId;
+
+        document.getElementById('tpl-detail-name').textContent = t.name || t.templateId;
+
+        var sections = t.sections || [];
+        var colorScheme = t.colorScheme || {};
+        var features = t.features || [];
+
+        var html = '<div class="detail-section"><h4>Overview</h4>' +
+            '<div class="detail-row"><span class="dl">Template ID</span><span class="dv" style="font-family:monospace;font-size:0.82rem;">' + t.templateId + '</span></div>' +
+            '<div class="detail-row"><span class="dl">Industry</span><span class="dv">' + capitalize(t.industry || '-') + '</span></div>' +
+            '<div class="detail-row"><span class="dl">Description</span><span class="dv">' + esc(t.description || '-') + '</span></div>' +
+            '</div>';
+
+        var colorKeys = Object.keys(colorScheme);
+        if (colorKeys.length) {
+            html += '<div class="detail-section"><h4>Color Scheme</h4>';
+            colorKeys.forEach(function(key) {
+                html += '<div class="detail-row"><span class="dl">' + capitalize(key) + '</span><span class="dv"><span class="color-swatch" style="background:' + colorScheme[key] + '"></span>' + colorScheme[key] + '</span></div>';
+            });
+            html += '</div>';
+        }
+
+        if (sections.length) {
+            html += '<div class="detail-section"><h4>Sections (' + sections.length + ')</h4>';
+            html += sections.map(function(s) { return '<span class="badge" style="background:var(--primary-light);color:var(--primary);margin:0.2rem;">' + esc(s) + '</span>'; }).join(' ');
+            html += '</div>';
+        }
+
+        if (features.length) {
+            html += '<div class="detail-section"><h4>Features</h4><ul style="padding-left:1.2rem;font-size:0.9rem;color:var(--text-light);">';
+            html += features.map(function(f) { return '<li>' + esc(f) + '</li>'; }).join('');
+            html += '</ul></div>';
+        }
+
+        document.getElementById('tpl-detail-body').innerHTML = html;
+        openModal('template-detail-modal');
+    }
+
+    function useTemplate() {
+        closeModal('template-detail-modal');
+        var t = allTemplates.find(function(x) { return x.templateId === selectedTemplateId; });
+        if (t) {
+            openNewSiteModal();
+            var industryMap = { 'fitness-club': 'fitness', 'web-agency': 'web-agency', 'restaurant': 'restaurant', 'general': 'general' };
+            document.getElementById('f-industry').value = industryMap[t.industry] || t.industry || '';
+            document.getElementById('f-template').value = t.templateId;
+        }
+    }
+
+    // ============================================
+    //  SETTINGS PAGE
+    // ============================================
+    async function loadSettings() {
+        document.getElementById('s-api-endpoint').value = API_BASE;
+        document.getElementById('s-customer-id').value = CUSTOMER_ID;
+        document.getElementById('s-cdn-domain').value = CDN_DOMAIN;
+
+        if (customerData) {
+            document.getElementById('s-company').value = customerData.companyName || '';
+            document.getElementById('s-email').value = customerData.email || '';
+            document.getElementById('s-tier').value = customerData.subscriptionTier || 'starter';
+            document.getElementById('s-usage-websites').textContent = customerData.websitesCount || 0;
+            document.getElementById('s-usage-gen').textContent = customerData.aiGenerationsUsed || 0;
+            document.getElementById('s-usage-limit').textContent = customerData.aiGenerationsLimit || 50;
+        }
+
+        var healthEl = document.getElementById('s-api-health');
+        try {
+            var health = await apiGet('/health');
+            healthEl.innerHTML = '<span class="badge badge-dot badge-published">Connected</span> <span style="font-size:0.8rem;color:var(--text-light);margin-left:0.5rem;">env: ' + (health.environment || '-') + '</span>';
+        } catch (e) {
+            healthEl.innerHTML = '<span class="badge badge-dot badge-error">Unreachable</span>';
+        }
+    }
+
+    async function saveSettings(e) {
+        e.preventDefault();
+        try {
+            var body = {
+                companyName: document.getElementById('s-company').value,
+                email: document.getElementById('s-email').value,
+                subscriptionTier: document.getElementById('s-tier').value
+            };
+            var updated = await apiPut('/customers/' + CUSTOMER_ID, body);
+            customerData = updated;
+            toast('Settings saved successfully', 'success');
+            document.getElementById('s-usage-limit').textContent = updated.aiGenerationsLimit || 50;
+        } catch (e) {
+            toast('Failed to save settings: ' + e.message, 'error');
+        }
+    }
+
+    // ============================================
+    //  CRUD OPERATIONS
+    // ============================================
+    async function createWebsite(e) {
+        e.preventDefault();
+        var btn = document.getElementById('create-btn');
+        btn.disabled = true;
+        btn.textContent = 'Creating...';
+
+        var industry = document.getElementById('f-industry').value;
+        var templateMap = { 'fitness': 'fitness-club-v1', 'web-agency': 'web-agency-v1', 'restaurant': 'restaurant-v1', 'general': 'general-v1' };
+
+        var body = {
+            businessName: document.getElementById('f-business-name').value,
+            industry: industry,
+            templateId: document.getElementById('f-template').value || templateMap[industry] || 'general-v1',
+            description: document.getElementById('f-description').value,
+            services: document.getElementById('f-services').value.split(',').map(function(s) { return s.trim(); }).filter(Boolean),
+            branding: {
+                primaryColor: document.getElementById('f-primary').value,
+                secondaryColor: document.getElementById('f-secondary').value,
+                logoText: document.getElementById('f-business-name').value
+            },
+            contact: {
+                email: document.getElementById('f-email').value,
+                phone: document.getElementById('f-phone').value,
+                address: document.getElementById('f-address').value
+            }
+        };
+
+        try {
+            var result = await apiPost('/customers/' + CUSTOMER_ID + '/websites', body);
+            if (result.websiteId) {
+                allWebsites.push(result);
+                try {
+                    await apiPost('/websites/' + result.websiteId + '/publish', {});
+                    var idx = allWebsites.findIndex(function(w) { return w.websiteId === result.websiteId; });
+                    if (idx >= 0) allWebsites[idx].status = 'generating';
+                    toast('"' + body.businessName + '" created and queued for generation!', 'success');
+                } catch (pubErr) {
+                    toast('"' + body.businessName + '" created as draft.', 'info');
+                }
+                startPolling();
+            }
+            closeModal('new-site-modal');
+            document.getElementById('new-site-form').reset();
+            document.getElementById('f-primary').value = '#2563EB';
+            document.getElementById('f-primary-text').value = '#2563EB';
+            document.getElementById('f-secondary').value = '#1E40AF';
+            document.getElementById('f-secondary-text').value = '#1E40AF';
+            if (currentPage === 'dashboard') renderDashboard();
+            if (currentPage === 'websites') renderWebsitesTable();
+        } catch (err) {
+            toast('Failed to create website: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = 'Create &amp; Generate';
+        }
+    }
+
+    function openEditModal(websiteId) {
+        var w = allWebsites.find(function(x) { return x.websiteId === websiteId; });
+        if (!w) return;
+
+        document.getElementById('e-website-id').value = w.websiteId;
+        document.getElementById('e-business-name').value = w.businessName || '';
+        document.getElementById('e-industry').value = w.industry || 'general';
+        document.getElementById('e-template').value = w.templateId || '';
+        document.getElementById('e-description').value = w.description || '';
+        document.getElementById('e-services').value = (w.services || []).join(', ');
+        var pc = (w.branding && w.branding.primaryColor) || '#2563EB';
+        var sc = (w.branding && w.branding.secondaryColor) || '#1E40AF';
+        document.getElementById('e-primary').value = pc;
+        document.getElementById('e-primary-text').value = pc;
+        document.getElementById('e-secondary').value = sc;
+        document.getElementById('e-secondary-text').value = sc;
+        document.getElementById('e-email').value = (w.contact && w.contact.email) || '';
+        document.getElementById('e-phone').value = (w.contact && w.contact.phone) || '';
+        document.getElementById('e-address').value = (w.contact && w.contact.address) || '';
+
+        openModal('edit-site-modal');
+    }
+
+    async function updateWebsite(e) {
+        e.preventDefault();
+        var websiteId = document.getElementById('e-website-id').value;
+        var body = {
+            businessName: document.getElementById('e-business-name').value,
+            industry: document.getElementById('e-industry').value,
+            templateId: document.getElementById('e-template').value,
+            description: document.getElementById('e-description').value,
+            services: document.getElementById('e-services').value.split(',').map(function(s) { return s.trim(); }).filter(Boolean),
+            branding: {
+                primaryColor: document.getElementById('e-primary').value,
+                secondaryColor: document.getElementById('e-secondary').value,
+                logoText: document.getElementById('e-business-name').value
+            },
+            contact: {
+                email: document.getElementById('e-email').value,
+                phone: document.getElementById('e-phone').value,
+                address: document.getElementById('e-address').value
+            }
+        };
+
+        try {
+            var updated = await apiPut('/websites/' + websiteId, body);
+            var idx = allWebsites.findIndex(function(w) { return w.websiteId === websiteId; });
+            if (idx >= 0) {
+                for (var key in updated) { allWebsites[idx][key] = updated[key]; }
+            }
+            closeModal('edit-site-modal');
+            toast('Website updated successfully', 'success');
+            if (currentPage === 'dashboard') renderDashboard();
+            if (currentPage === 'websites') renderWebsitesTable();
+            if (currentPage === 'website-detail') renderWebsiteDetail(allWebsites[idx] || updated);
+        } catch (err) {
+            toast('Failed to update: ' + err.message, 'error');
+        }
+    }
+
+    async function publishSite(websiteId) {
+        try {
+            await apiPost('/websites/' + websiteId + '/publish', {});
+            var idx = allWebsites.findIndex(function(w) { return w.websiteId === websiteId; });
+            if (idx >= 0) allWebsites[idx].status = 'generating';
+            toast('Website queued for generation!', 'success');
+            startPolling();
+            if (currentPage === 'dashboard') renderDashboard();
+            if (currentPage === 'websites') renderWebsitesTable();
+            if (currentPage === 'website-detail' && idx >= 0) renderWebsiteDetail(allWebsites[idx]);
+        } catch (err) {
+            toast('Publish failed: ' + err.message, 'error');
+        }
+    }
+
+    async function regenerateSite(websiteId) {
+        try {
+            await apiPost('/websites/' + websiteId + '/publish', {});
+            var idx = allWebsites.findIndex(function(w) { return w.websiteId === websiteId; });
+            if (idx >= 0) allWebsites[idx].status = 'generating';
+            toast('Website queued for regeneration!', 'info');
+            startPolling();
+            if (currentPage === 'dashboard') renderDashboard();
+            if (currentPage === 'websites') renderWebsitesTable();
+            if (currentPage === 'website-detail' && idx >= 0) renderWebsiteDetail(allWebsites[idx]);
+        } catch (err) {
+            toast('Regeneration failed: ' + err.message, 'error');
+        }
+    }
+
+    function confirmDeleteSite(websiteId, name) {
+        showConfirm(
+            'Delete Website',
+            'Are you sure you want to delete "' + name + '"? This action cannot be undone.',
+            async function() {
+                try {
+                    await apiDelete('/websites/' + websiteId);
+                    allWebsites = allWebsites.filter(function(w) { return w.websiteId !== websiteId; });
+                    toast('Website deleted', 'success');
+                    if (currentPage === 'website-detail') navigateTo('websites');
+                    if (currentPage === 'dashboard') renderDashboard();
+                    if (currentPage === 'websites') renderWebsitesTable();
+                } catch (err) {
+                    toast('Delete failed: ' + err.message, 'error');
+                }
+            }
+        );
+    }
+
+    // ============================================
+    //  MODALS & CONFIRM
+    // ============================================
+    function openModal(id) {
+        document.getElementById(id).classList.add('active');
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('active');
+    }
+
+    function openNewSiteModal() {
+        openModal('new-site-modal');
+    }
+
+    function showConfirm(title, message, callback) {
+        document.getElementById('confirm-title').textContent = title;
+        document.getElementById('confirm-message').textContent = message;
+        pendingConfirmCallback = callback;
+        document.getElementById('confirm-overlay').classList.add('active');
+    }
+
+    function closeConfirm() {
+        document.getElementById('confirm-overlay').classList.remove('active');
+        pendingConfirmCallback = null;
+    }
+
+    function confirmAction() {
+        if (pendingConfirmCallback) pendingConfirmCallback();
+        closeConfirm();
+    }
+
+    // Close modals on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) overlay.classList.remove('active');
+        });
+    });
+
+    // Close modals on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-overlay.active').forEach(function(m) { m.classList.remove('active'); });
+            closeConfirm();
+        }
+    });
+
+    // ============================================
+    //  TOAST NOTIFICATIONS
+    // ============================================
+    function toast(message, type) {
+        type = type || 'info';
+        var container = document.getElementById('toast-container');
+        var icons = { success: '\u2705', error: '\u274C', info: '\u2139\uFE0F' };
+        var t = document.createElement('div');
+        t.className = 'toast ' + type;
+        t.innerHTML = '<span class="toast-icon">' + (icons[type] || '\u2139\uFE0F') + '</span>' +
+            '<span>' + esc(message) + '</span>' +
+            '<button class="toast-close" onclick="this.parentElement.remove()">&times;</button>';
+        container.appendChild(t);
+        setTimeout(function() { if (t.parentElement) t.remove(); }, 5000);
+    }
+
+    // ============================================
+    //  UTILITIES
+    // ============================================
+    function esc(str) {
+        var d = document.createElement('div');
+        d.textContent = str || '';
+        return d.innerHTML;
+    }
+
+    function capitalize(str) {
+        if (!str) return '';
+        return str.charAt(0).toUpperCase() + str.slice(1).replace(/-/g, ' ');
+    }
+
+    function formatDate(timestamp) {
+        if (!timestamp) return '-';
+        var d = new Date(typeof timestamp === 'number' ? timestamp : parseInt(timestamp));
+        if (isNaN(d.getTime())) return '-';
+        var now = new Date();
+        var diff = now - d;
+        if (diff < 60000) return 'Just now';
+        if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+        if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+        if (diff < 604800000) return Math.floor(diff / 86400000) + 'd ago';
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
+    }
+
+    // ============================================
+    //  BOOT
+    // ============================================
+    init();
+    </script>
+</body>
+</html>

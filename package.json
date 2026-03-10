@@ -1,13 +1,17 @@
 {
   "name": "aws-iot-dashboard",
-  "version": "1.0.0",
-  "description": "AWS IoT Dashboard with real-time data visualization",
+  "version": "1.1.0",
+  "description": "AWS IoT Dashboard + AI Website Generator SaaS Platform",
   "scripts": {
     "build": "esbuild apps/iot-dashboard/website/ts/*.ts --bundle --outdir=apps/iot-dashboard/website/js --minify",
     "watch": "esbuild apps/iot-dashboard/website/ts/*.ts --bundle --outdir=apps/iot-dashboard/website/js --watch",
     "serve": "npx serve apps/iot-dashboard/website -p 3000",
+    "serve:dashboard": "npx serve apps/dashboard/website -p 3001",
     "dev": "concurrently \"npm run watch\" \"npm run serve\"",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "deploy": "pwsh scripts/deploy.ps1",
+    "deploy:saas": "pwsh scripts/deploy-saas.ps1",
+    "seed:templates": "python platform/scripts/seed_templates.py"
   },
   "devDependencies": {
     "concurrently": "^8.2.0",

@@ -1,0 +1,595 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  AI Website Generator SaaS Platform — Cognito auth, DynamoDB tables,
+  Lambda functions, HTTP API Gateway, S3 bucket for generated sites,
+  and CloudFront CDN.
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: prod
+    AllowedValues: [dev, staging, prod]
+  OpenAISecretArn:
+    Type: String
+    Default: ''
+    Description: ARN of the Secrets Manager secret holding the OpenAI API key (leave blank to skip AI features)
+
+Conditions:
+  HasOpenAISecret: !Not [!Equals [!Ref OpenAISecretArn, '']]
+
+Resources:
+  # ──────────────────────────────────────────────
+  #  Authentication — Cognito User Pool
+  # ──────────────────────────────────────────────
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub website-generator-users-${EnvironmentName}
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 10
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+      Schema:
+        - Name: email
+          Required: true
+          Mutable: true
+        - Name: company_name
+          AttributeDataType: String
+          Mutable: true
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub website-generator-client-${EnvironmentName}
+      UserPoolId: !Ref UserPool
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      GenerateSecret: false
+      AccessTokenValidity: 12
+      IdTokenValidity: 12
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+
+  # ──────────────────────────────────────────────
+  #  DynamoDB Tables
+  # ──────────────────────────────────────────────
+  CustomersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub saas-customers-${EnvironmentName}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: customerId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: customerId
+          KeyType: HASH
+
+  WebsitesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub saas-websites-${EnvironmentName}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: customerId
+          AttributeType: S
+        - AttributeName: websiteId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: customerId
+          KeyType: HASH
+        - AttributeName: websiteId
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: websiteId-index
+          KeySchema:
+            - AttributeName: websiteId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  GenerationJobsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub saas-generation-jobs-${EnvironmentName}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: jobId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: jobId
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  TemplatesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub saas-templates-${EnvironmentName}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: templateId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: templateId
+          KeyType: HASH
+
+  # ──────────────────────────────────────────────
+  #  S3 — Generated Websites Bucket
+  # ──────────────────────────────────────────────
+  GeneratedSitesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub saas-generated-sites-${AWS::AccountId}-${EnvironmentName}
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 90
+            Status: Enabled
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins: ['*']
+            AllowedMethods: [GET]
+            AllowedHeaders: ['*']
+            MaxAge: 3600
+
+  GeneratedSitesOAI:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: OAI for generated customer websites
+
+  GeneratedSitesBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref GeneratedSitesBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              CanonicalUser: !GetAtt GeneratedSitesOAI.S3CanonicalUserId
+            Action: s3:GetObject
+            Resource: !Sub arn:aws:s3:::${GeneratedSitesBucket}/*
+
+  # ──────────────────────────────────────────────
+  #  S3 — Website Templates Bucket
+  # ──────────────────────────────────────────────
+  TemplateBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub saas-templates-${AWS::AccountId}-${EnvironmentName}
+      VersioningConfiguration:
+        Status: Enabled
+
+  # ──────────────────────────────────────────────
+  #  CloudFront — Generated Sites CDN
+  # ──────────────────────────────────────────────
+  GeneratedSitesCDN:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub Generated customer websites (${EnvironmentName})
+        Enabled: true
+        HttpVersion: http2and3
+        Origins:
+          - Id: GeneratedSitesOrigin
+            DomainName: !GetAtt GeneratedSitesBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${GeneratedSitesOAI}
+        DefaultCacheBehavior:
+          TargetOriginId: GeneratedSitesOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          DefaultTTL: 86400
+          MaxTTL: 31536000
+          MinTTL: 0
+          Compress: true
+        DefaultRootObject: index.html
+        CustomErrorResponses:
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 60
+
+  # ──────────────────────────────────────────────
+  #  IAM — Lambda Execution Role
+  # ──────────────────────────────────────────────
+  SaaSLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub saas-lambda-role-${EnvironmentName}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: SaaSLambdaPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # DynamoDB
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource:
+                  - !GetAtt CustomersTable.Arn
+                  - !GetAtt WebsitesTable.Arn
+                  - !Sub ${WebsitesTable.Arn}/index/*
+                  - !GetAtt GenerationJobsTable.Arn
+                  - !GetAtt TemplatesTable.Arn
+              # S3 — generated sites
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt GeneratedSitesBucket.Arn
+                  - !Sub ${GeneratedSitesBucket.Arn}/*
+              # S3 — templates (read only)
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt TemplateBucket.Arn
+                  - !Sub ${TemplateBucket.Arn}/*
+              # CloudFront invalidation
+              - Effect: Allow
+                Action:
+                  - cloudfront:CreateInvalidation
+                Resource: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${GeneratedSitesCDN}
+              # CloudWatch Logs
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+              # Secrets Manager (conditional — for OpenAI key)
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: '*'
+
+  # ──────────────────────────────────────────────
+  #  Lambda — API Router
+  # ──────────────────────────────────────────────
+  ApiRouterFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub saas-api-router-${EnvironmentName}
+      Handler: index.handler
+      Runtime: python3.11
+      Role: !GetAtt SaaSLambdaRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          CUSTOMERS_TABLE: !Ref CustomersTable
+          WEBSITES_TABLE: !Ref WebsitesTable
+          TEMPLATES_TABLE: !Ref TemplatesTable
+          JOBS_TABLE: !Ref GenerationJobsTable
+          GENERATED_BUCKET: !Ref GeneratedSitesBucket
+          TEMPLATE_BUCKET: !Ref TemplateBucket
+          CDN_DOMAIN: !GetAtt GeneratedSitesCDN.DomainName
+          CDN_DISTRIBUTION_ID: !Ref GeneratedSitesCDN
+          GENERATION_QUEUE_URL: !Ref GenerationQueue
+          ENVIRONMENT: !Ref EnvironmentName
+      Code:
+        ZipFile: |
+          # Thin bootstrap — actual logic is deployed via S3 in CI/CD.
+          # This inline code is a working placeholder for initial stack creation.
+          import json
+
+          def handler(event, context):
+              path = event.get('rawPath', '')
+              method = event.get('requestContext', {}).get('http', {}).get('method', '')
+              return {
+                  'statusCode': 200,
+                  'headers': {
+                      'Content-Type': 'application/json',
+                      'Access-Control-Allow-Origin': '*'
+                  },
+                  'body': json.dumps({
+                      'service': 'AI Website Generator SaaS',
+                      'version': '0.1.0',
+                      'path': path,
+                      'method': method,
+                      'status': 'placeholder — deploy function code via CI/CD'
+                  })
+              }
+
+  # ──────────────────────────────────────────────
+  #  Lambda — Website Generator (long-running)
+  # ──────────────────────────────────────────────
+  WebsiteGeneratorFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub saas-website-generator-${EnvironmentName}
+      Handler: index.handler
+      Runtime: python3.11
+      Role: !GetAtt SaaSLambdaRole.Arn
+      Timeout: 900
+      MemorySize: 512
+      Environment:
+        Variables:
+          CUSTOMERS_TABLE: !Ref CustomersTable
+          WEBSITES_TABLE: !Ref WebsitesTable
+          JOBS_TABLE: !Ref GenerationJobsTable
+          GENERATED_BUCKET: !Ref GeneratedSitesBucket
+          TEMPLATE_BUCKET: !Ref TemplateBucket
+          CDN_DOMAIN: !GetAtt GeneratedSitesCDN.DomainName
+          CDN_DISTRIBUTION_ID: !Ref GeneratedSitesCDN
+          OPENAI_SECRET_ARN: !If [HasOpenAISecret, !Ref OpenAISecretArn, '']
+          ENVIRONMENT: !Ref EnvironmentName
+      Code:
+        ZipFile: |
+          import json
+          def handler(event, context):
+              return {'statusCode': 200, 'body': json.dumps({'status': 'placeholder'})}
+
+  # ──────────────────────────────────────────────
+  #  SQS — Generation Queue
+  # ──────────────────────────────────────────────
+  GenerationQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub saas-generation-queue-${EnvironmentName}
+      VisibilityTimeout: 960
+      MessageRetentionPeriod: 86400
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt GenerationDLQ.Arn
+        maxReceiveCount: 3
+
+  GenerationDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub saas-generation-dlq-${EnvironmentName}
+      MessageRetentionPeriod: 1209600
+
+  GeneratorSQSTrigger:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt GenerationQueue.Arn
+      FunctionName: !Ref WebsiteGeneratorFunction
+      BatchSize: 1
+      Enabled: true
+
+  SQSSendPermission:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub saas-sqs-send-${EnvironmentName}
+      Roles:
+        - !Ref SaaSLambdaRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - sqs:SendMessage
+              - sqs:ReceiveMessage
+              - sqs:DeleteMessage
+              - sqs:GetQueueAttributes
+            Resource:
+              - !GetAtt GenerationQueue.Arn
+              - !GetAtt GenerationDLQ.Arn
+
+  # ──────────────────────────────────────────────
+  #  HTTP API Gateway
+  # ──────────────────────────────────────────────
+  SaaSHttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub saas-api-${EnvironmentName}
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins: ['*']
+        AllowMethods: [GET, POST, PUT, DELETE, OPTIONS]
+        AllowHeaders: ['*']
+        ExposeHeaders: ['*']
+        MaxAge: 86400
+
+  SaaSApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      StageName: api
+      AutoDeploy: true
+
+  # Integration — API Router
+  ApiRouterIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt ApiRouterFunction.Arn
+      PayloadFormatVersion: '2.0'
+
+  # ── Routes ──────────────────────────────────────
+  # Health check
+  HealthRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'GET /health'
+      Target: !Sub integrations/${ApiRouterIntegration}
+
+  # Customers
+  CreateCustomerRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'POST /customers'
+      Target: !Sub integrations/${ApiRouterIntegration}
+
+  GetCustomerRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'GET /customers/{customerId}'
+      Target: !Sub integrations/${ApiRouterIntegration}
+
+  UpdateCustomerRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'PUT /customers/{customerId}'
+      Target: !Sub integrations/${ApiRouterIntegration}
+
+  # Websites
+  CreateWebsiteRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'POST /customers/{customerId}/websites'
+      Target: !Sub integrations/${ApiRouterIntegration}
+
+  ListWebsitesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'GET /customers/{customerId}/websites'
+      Target: !Sub integrations/${ApiRouterIntegration}
+
+  GetWebsiteRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'GET /websites/{websiteId}'
+      Target: !Sub integrations/${ApiRouterIntegration}
+
+  UpdateWebsiteRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'PUT /websites/{websiteId}'
+      Target: !Sub integrations/${ApiRouterIntegration}
+
+  DeleteWebsiteRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'DELETE /websites/{websiteId}'
+      Target: !Sub integrations/${ApiRouterIntegration}
+
+  PublishWebsiteRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'POST /websites/{websiteId}/publish'
+      Target: !Sub integrations/${ApiRouterIntegration}
+
+  # Templates
+  ListTemplatesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'GET /templates'
+      Target: !Sub integrations/${ApiRouterIntegration}
+
+  GetTemplateRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'GET /templates/{templateId}'
+      Target: !Sub integrations/${ApiRouterIntegration}
+
+  # AI Generation
+  GenerateContentRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'POST /ai/generate'
+      Target: !Sub integrations/${ApiRouterIntegration}
+
+  GenerationStatusRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'GET /ai/jobs/{jobId}'
+      Target: !Sub integrations/${ApiRouterIntegration}
+
+  # ── Lambda Permissions for API Gateway ──────────
+  ApiRouterPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ApiRouterFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SaaSHttpApi}/*/*
+
+# ──────────────────────────────────────────────────
+#  Outputs
+# ──────────────────────────────────────────────────
+Outputs:
+  SaaSApiEndpoint:
+    Description: SaaS HTTP API base URL
+    Value: !Sub https://${SaaSHttpApi}.execute-api.${AWS::Region}.amazonaws.com/api
+
+  GeneratedSitesCDNDomain:
+    Description: CloudFront domain for generated customer websites
+    Value: !GetAtt GeneratedSitesCDN.DomainName
+
+  GeneratedSitesCDNId:
+    Description: CloudFront distribution ID for invalidation
+    Value: !Ref GeneratedSitesCDN
+
+  GeneratedSitesBucketName:
+    Description: S3 bucket holding generated website files
+    Value: !Ref GeneratedSitesBucket
+
+  TemplateBucketName:
+    Description: S3 bucket holding website templates
+    Value: !Ref TemplateBucket
+
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref UserPool
+
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID
+    Value: !Ref UserPoolClient
+
+  GenerationQueueUrl:
+    Description: SQS queue for async website generation jobs
+    Value: !Ref GenerationQueue
+
+  CustomersTableName:
+    Value: !Ref CustomersTable
+  WebsitesTableName:
+    Value: !Ref WebsitesTable
+  TemplatesTableName:
+    Value: !Ref TemplatesTable
+  GenerationJobsTableName:
+    Value: !Ref GenerationJobsTable

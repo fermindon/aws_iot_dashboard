@@ -1,0 +1,26 @@
+{
+  "templateId": "general-v1",
+  "name": "General Business",
+  "industry": "general",
+  "version": "1.0.0",
+  "description": "Clean, versatile template suitable for any small business.",
+  "thumbnail": "general-thumb.png",
+  "colorPresets": [
+    { "name": "Corporate", "primary": "#2563EB", "secondary": "#1E40AF" },
+    { "name": "Nature",    "primary": "#059669", "secondary": "#047857" },
+    { "name": "Warm",      "primary": "#DC2626", "secondary": "#B91C1C" }
+  ],
+  "sections": [
+    { "id": "hero",         "name": "Hero Section",     "required": true  },
+    { "id": "about",        "name": "About Section",    "required": true  },
+    { "id": "services",     "name": "Services",         "required": true  },
+    { "id": "testimonials", "name": "Testimonials",     "required": false },
+    { "id": "cta",          "name": "Call to Action",   "required": true  },
+    { "id": "contact",      "name": "Contact Section",  "required": true  }
+  ],
+  "defaultServices": ["Consulting", "Support", "Solutions"],
+  "aiPromptHints": {
+    "tone": "professional, approachable",
+    "keywords": ["trusted", "expert", "solutions", "quality", "results"]
+  }
+}
