@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Account | Angelorum Solutions</title>
+  <meta name="description" content="Manage your Angelorum Solutions account, orders, invoices, and payment methods." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="payment.css" />
+</head>
+<body>
+
+  <!-- ===== NAV ===== -->
+  <header class="topbar" id="top">
+    <div class="container nav-wrap">
+      <a class="brand" href="index.html">
+        <span class="brand-mark" aria-hidden="true">
+          <img src="sentinel-logo.svg" alt="" class="brand-logo" />
+        </span>
+        <span class="brand-text">Angelorum<span class="brand-accent"> Solutions</span></span>
+      </a>
+      <nav class="nav-links" id="nav-links">
+        <a href="index.html#services">Services</a>
+        <a href="index.html#work">Work</a>
+        <a href="index.html#pricing">Pricing</a>
+        <a href="portal.html">My Account</a>
+      </nav>
+      <button class="mobile-toggle" id="mobile-toggle" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <a class="btn btn-sm btn-glow" href="payment.html">Start a Project</a>
+    </div>
+  </header>
+
+  <main class="portal-main">
+
+    <!-- ===== PORTAL HEADER ===== -->
+    <section class="portal-hero">
+      <div class="container">
+        <h1>My Account</h1>
+        <p class="lead">Manage your orders, invoices, and payment methods.</p>
+      </div>
+    </section>
+
+    <!-- ===== LOGIN SECTION (shown when not logged in) ===== -->
+    <section class="portal-body" id="login-section">
+      <div class="container">
+        <div class="login-section">
+          <h2>Sign In</h2>
+          <p>Access your account to view orders and manage your projects.</p>
+
+          <div class="login-card">
+            <div class="form-field">
+              <span class="label-text">Email Address</span>
+              <input type="email" id="login-email" placeholder="you@business.com" />
+            </div>
+            <div class="form-field">
+              <span class="label-text">Password</span>
+              <input type="password" id="login-password" placeholder="••••••••" />
+            </div>
+            <button class="btn btn-lg btn-block btn-glow" id="login-btn">Sign In</button>
+
+            <div class="login-divider"><span>or</span></div>
+
+            <button class="btn btn-lg btn-block btn-ghost" id="login-order-lookup">Look Up by Order ID</button>
+
+            <div class="form-field" id="order-lookup-field" style="display:none; margin-top:1rem">
+              <span class="label-text">Order ID</span>
+              <input type="text" id="lookup-order-id" placeholder="ORD-XXXXXXXX" />
+              <button class="btn btn-sm" id="lookup-btn" style="margin-top:.5rem">Find Order</button>
+            </div>
+
+            <p id="login-error" style="color: #ef4444; font-size: .85rem; margin-top: .8rem; min-height: 1.2rem;"></p>
+          </div>
+
+          <p style="margin-top: 1.5rem; font-size: .85rem; color: var(--muted);">
+            Don't have an account? <a href="payment.html" class="link-accent">Start a project</a> and one will be created for you.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== DASHBOARD (shown when logged in) ===== -->
+    <section class="portal-body" id="dashboard-section" style="display:none">
+      <div class="container">
+
+        <!-- Welcome Bar -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem">
+          <div>
+            <h2 style="margin-bottom:.2rem">Welcome back, <span id="portal-user-name">Client</span></h2>
+            <p style="color:var(--muted);margin:0;font-size:.9rem" id="portal-user-email"></p>
+          </div>
+          <button class="btn btn-sm btn-ghost" id="logout-btn">Sign Out</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="portal-stats">
+          <div class="portal-stat-card">
+            <span class="stat-value" id="stat-orders">0</span>
+            <span class="stat-label">Total Orders</span>
+          </div>
+          <div class="portal-stat-card">
+            <span class="stat-value" id="stat-active">0</span>
+            <span class="stat-label">Active Projects</span>
+          </div>
+          <div class="portal-stat-card">
+            <span class="stat-value" id="stat-spent">$0</span>
+            <span class="stat-label">Total Spent</span>
+          </div>
+          <div class="portal-stat-card">
+            <span class="stat-value" id="stat-subscriptions">0</span>
+            <span class="stat-label">Active Subscriptions</span>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="portal-tabs">
+          <button class="portal-tab active" data-tab="orders">Orders</button>
+          <button class="portal-tab" data-tab="invoices">Invoices</button>
+          <button class="portal-tab" data-tab="payment-methods">Payment Methods</button>
+          <button class="portal-tab" data-tab="settings">Settings</button>
+        </div>
+
+        <!-- Orders Panel -->
+        <div class="portal-panel active" id="panel-orders">
+          <table class="orders-table" id="orders-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Package</th>
+                <th>Date</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="orders-tbody">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+          <div class="empty-state" id="orders-empty" style="display:none">
+            <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <h3>No orders yet</h3>
+            <p>Your orders will appear here after you purchase a package.</p>
+            <a class="btn btn-glow" href="payment.html">Start a Project</a>
+          </div>
+        </div>
+
+        <!-- Invoices Panel -->
+        <div class="portal-panel" id="panel-invoices">
+          <div class="invoices-list" id="invoices-list">
+            <!-- Populated by JS -->
+          </div>
+          <div class="empty-state" id="invoices-empty" style="display:none">
+            <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+            <h3>No invoices</h3>
+            <p>Invoices are generated automatically when you make a payment.</p>
+          </div>
+        </div>
+
+        <!-- Payment Methods Panel -->
+        <div class="portal-panel" id="panel-payment-methods">
+          <div class="payment-methods-list" id="payment-methods-list">
+            <!-- Populated by JS -->
+          </div>
+          <div class="empty-state" id="methods-empty" style="display:none">
+            <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            <h3>No payment methods saved</h3>
+            <p>Your payment methods will appear here after your first purchase.</p>
+          </div>
+          <button class="btn btn-ghost" style="margin-top:1rem" id="add-payment-method">
+            + Add Payment Method
+          </button>
+        </div>
+
+        <!-- Settings Panel -->
+        <div class="portal-panel" id="panel-settings">
+          <div style="max-width:500px">
+            <h3 style="margin-bottom:1.5rem">Account Settings</h3>
+            <div class="form-grid">
+              <label class="form-field">
+                <span class="label-text">Full Name</span>
+                <input type="text" id="settings-name" placeholder="John Smith" />
+              </label>
+              <label class="form-field">
+                <span class="label-text">Email</span>
+                <input type="email" id="settings-email" placeholder="john@business.com" />
+              </label>
+              <label class="form-field">
+                <span class="label-text">Phone</span>
+                <input type="tel" id="settings-phone" placeholder="(555) 123-4567" />
+              </label>
+              <label class="form-field">
+                <span class="label-text">Business Name</span>
+                <input type="text" id="settings-business" placeholder="My Business" />
+              </label>
+            </div>
+            <button class="btn btn-glow" id="save-settings" style="margin-top:1rem">Save Changes</button>
+            <p id="settings-status" style="font-size:.85rem;margin-top:.8rem;min-height:1.2rem;color:var(--success)"></p>
+
+            <div style="margin-top:3rem;padding-top:2rem;border-top:1px solid var(--border)">
+              <h3 style="margin-bottom:.5rem">Email Notifications</h3>
+              <p style="color:var(--muted);font-size:.88rem;margin-bottom:1rem">Choose which notifications you'd like to receive.</p>
+              <label class="checkbox-field" style="margin-bottom:.6rem">
+                <input type="checkbox" checked />
+                <span>Order confirmations and receipts</span>
+              </label>
+              <label class="checkbox-field" style="margin-bottom:.6rem">
+                <input type="checkbox" checked />
+                <span>Project status updates</span>
+              </label>
+              <label class="checkbox-field" style="margin-bottom:.6rem">
+                <input type="checkbox" checked />
+                <span>Invoice and payment reminders</span>
+              </label>
+              <label class="checkbox-field">
+                <input type="checkbox" />
+                <span>Marketing and promotional offers</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <img src="sentinel-logo.svg" alt="" class="brand-logo" />
+          </span>
+          <span class="brand-text">Angelorum<span class="brand-accent"> Solutions</span></span>
+        </a>
+        <p>Professional websites for small businesses that need to be found and trusted.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="index.html#services">Services</a>
+        <a href="index.html#work">Our Work</a>
+        <a href="index.html#pricing">Pricing</a>
+      </div>
+      <div class="footer-col">
+        <h4>Resources</h4>
+        <a href="index.html#contact">Contact Us</a>
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="terms.html">Terms of Service</a>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <p>&copy; <span id="year"></span> Angelorum Solutions. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="portal.js"></script>
+</body>
+</html>

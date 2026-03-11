@@ -69,19 +69,27 @@ def _get_openai_key():
     if _openai_key_cache:
         return _openai_key_cache
     if not OPENAI_SECRET_ARN:
+        print('[generator] OPENAI_SECRET_ARN not configured — AI generation disabled')
         return None
     try:
+        print(f'[generator] Retrieving OpenAI key from {OPENAI_SECRET_ARN}')
         resp = secrets.get_secret_value(SecretId=OPENAI_SECRET_ARN)
         secret = json.loads(resp['SecretString'])
         _openai_key_cache = secret.get('api_key', secret.get('OPENAI_API_KEY', ''))
+        if _openai_key_cache:
+            print(f'[generator] OpenAI key retrieved successfully (length: {len(_openai_key_cache)})')
+        else:
+            print('[generator] OpenAI secret exists but has no api_key field')
         return _openai_key_cache
     except Exception as e:
-        print(f'[generator] Failed to get OpenAI key: {e}')
+        print(f'[generator] Failed to get OpenAI key: {type(e).__name__}: {e}')
         return None
 
 
 def generate_content_with_ai(website):
     """Call OpenAI to generate website copy. Falls back to templates if no key."""
+    website_id = website.get('websiteId', 'unknown')
+    print(f'[generator] Processing website {website_id}')
     api_key = _get_openai_key()
     if not api_key:
         print('[generator] No OpenAI key — using template fallback content')
@@ -89,6 +97,7 @@ def generate_content_with_ai(website):
 
     try:
         import urllib.request
+        print('[generator] Attempting to generate content with OpenAI...')
 
         business_name = website.get('businessName', 'Business')
         industry      = website.get('industry', 'general')
@@ -166,12 +175,18 @@ Requirements:
                 'Authorization': f'Bearer {api_key}',
             },
         )
+        print('[generator] Sending request to OpenAI API...')
 
         with urllib.request.urlopen(req, timeout=120) as resp:
-            result = json.loads(resp.read().decode())
+            response_text = resp.read().decode()
+            print(f'[generator] OpenAI response received: {len(response_text)} bytes')
+            result = json.loads(response_text)
+            print('[generator] Response parsed successfully')
 
         content_str = result['choices'][0]['message']['content']
+        print(f'[generator] Extracted content string from response')
         content = json.loads(content_str)
+        print('[generator] Content JSON parsed successfully')
 
         tokens_used = result.get('usage', {}).get('total_tokens', 0)
         print(f'[generator] AI generated content — {tokens_used} tokens used')
@@ -184,7 +199,9 @@ Requirements:
         }
 
     except Exception as e:
-        print(f'[generator] AI generation failed: {e} — using fallback')
+        import traceback
+        print(f'[generator] AI generation failed: {type(e).__name__}: {e}')
+        print(f'[generator] Traceback: {traceback.format_exc()}')
         return _fallback_content(website)
 
 

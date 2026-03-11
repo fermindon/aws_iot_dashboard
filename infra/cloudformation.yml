@@ -136,6 +136,85 @@ Resources:
         AttributeName: ttl
         Enabled: true
 
+  # ── Payment Portal Tables ─────────────────────────
+  OrdersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: orderId
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: N
+      KeySchema:
+        - AttributeName: orderId
+          KeyType: HASH
+        - AttributeName: createdAt
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  InvoicesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: invoiceId
+          AttributeType: S
+        - AttributeName: orderId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: invoiceId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+        - IndexName: OrderIndex
+          KeySchema:
+            - AttributeName: orderId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  CustomersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: customerId
+          AttributeType: S
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: customerId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+        - IndexName: EmailIndex
+          KeySchema:
+            - AttributeName: email
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  SubscriptionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: subscriptionId
+          AttributeType: S
+        - AttributeName: customerId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: subscriptionId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+        - IndexName: CustomerIndex
+          KeySchema:
+            - AttributeName: customerId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
   WebSocketApi:
     Type: AWS::ApiGatewayV2::Api
     Properties:
@@ -900,6 +979,305 @@ Resources:
       RouteKey: 'POST /inquiries'
       Target: !Sub integrations/${InquiryIntegration}
 
+  # ── Payment Portal Lambda & Routes ─────────────────
+  PaymentFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.9
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import os
+          import uuid
+          import time
+
+          ddb = boto3.client('dynamodb')
+          ses = boto3.client('ses')
+          ORDERS_TABLE = os.environ.get('ORDERS_TABLE')
+          INVOICES_TABLE = os.environ.get('INVOICES_TABLE')
+          CUSTOMERS_TABLE = os.environ.get('CUSTOMERS_TABLE')
+          SUBSCRIPTIONS_TABLE = os.environ.get('SUBSCRIPTIONS_TABLE')
+          SENDER_EMAIL = 'inquiry@angelorumsolutions.com'
+
+          CORS_HEADERS = {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Headers': 'Content-Type',
+              'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
+          }
+
+          def respond(status, body):
+              return {
+                  'statusCode': status,
+                  'body': json.dumps(body),
+                  'headers': CORS_HEADERS
+              }
+
+          def get_or_create_customer(email, name, phone, business_name):
+              """Find customer by email or create new one"""
+              try:
+                  resp = ddb.query(
+                      TableName=CUSTOMERS_TABLE,
+                      IndexName='EmailIndex',
+                      KeyConditionExpression='email = :e',
+                      ExpressionAttributeValues={':e': {'S': email}},
+                      Limit=1
+                  )
+                  if resp.get('Items'):
+                      return resp['Items'][0]['customerId']['S']
+              except Exception as e:
+                  print(f"Customer lookup error: {e}")
+
+              customer_id = str(uuid.uuid4())
+              now = int(time.time() * 1000)
+              ddb.put_item(TableName=CUSTOMERS_TABLE, Item={
+                  'customerId': {'S': customer_id},
+                  'email': {'S': email},
+                  'fullName': {'S': name},
+                  'phone': {'S': phone or ''},
+                  'businessName': {'S': business_name or ''},
+                  'stripeCustomerId': {'S': ''},
+                  'createdAt': {'N': str(now)},
+                  'updatedAt': {'N': str(now)}
+              })
+              return customer_id
+
+          def create_order(body):
+              """Create a new order and invoice"""
+              required = ['orderId', 'customer', 'package', 'total']
+              for f in required:
+                  if f not in body:
+                      return respond(400, {'error': f'Missing field: {f}'})
+
+              customer = body['customer']
+              customer_id = get_or_create_customer(
+                  customer.get('email', ''),
+                  customer.get('fullName', ''),
+                  customer.get('phone', ''),
+                  customer.get('businessName', '')
+              )
+
+              now = int(time.time() * 1000)
+              ttl = int(time.time()) + (365 * 24 * 60 * 60)
+
+              order_item = {
+                  'orderId': {'S': body['orderId']},
+                  'createdAt': {'N': str(now)},
+                  'customerId': {'S': customer_id},
+                  'customerEmail': {'S': customer.get('email', '')},
+                  'customerName': {'S': customer.get('fullName', '')},
+                  'businessName': {'S': customer.get('businessName', '')},
+                  'package': {'S': body.get('package', '')},
+                  'packageName': {'S': body.get('packageName', '')},
+                  'packagePrice': {'N': str(body.get('packagePrice', 0))},
+                  'addons': {'S': json.dumps(body.get('addons', []))},
+                  'promoCode': {'S': body.get('promoCode', '') or ''},
+                  'discount': {'N': str(body.get('discount', 0))},
+                  'tax': {'N': str(body.get('tax', 0))},
+                  'total': {'N': str(body.get('total', 0))},
+                  'monthlyRecurring': {'N': str(body.get('monthlyRecurring', 0))},
+                  'paymentMethod': {'S': body.get('paymentMethod', 'card')},
+                  'paymentIntentId': {'S': body.get('paymentIntentId', '')},
+                  'status': {'S': body.get('status', 'confirmed')},
+                  'billingAddress': {'S': json.dumps(body.get('billingAddress', {}))},
+                  'industry': {'S': customer.get('industry', '')},
+                  'projectNotes': {'S': customer.get('projectNotes', '')},
+                  'ttl': {'N': str(ttl)}
+              }
+              ddb.put_item(TableName=ORDERS_TABLE, Item=order_item)
+
+              invoice_id = 'INV-' + body['orderId'].replace('ORD-', '')
+              invoice_item = {
+                  'invoiceId': {'S': invoice_id},
+                  'orderId': {'S': body['orderId']},
+                  'customerId': {'S': customer_id},
+                  'customerEmail': {'S': customer.get('email', '')},
+                  'amount': {'N': str(body.get('total', 0))},
+                  'status': {'S': 'paid'},
+                  'createdAt': {'N': str(now)}
+              }
+              ddb.put_item(TableName=INVOICES_TABLE, Item=invoice_item)
+
+              # Create subscriptions for monthly add-ons
+              for addon in body.get('addons', []):
+                  if addon.get('type') == 'monthly':
+                      sub_id = 'SUB-' + str(uuid.uuid4())[:8].upper()
+                      ddb.put_item(TableName=SUBSCRIPTIONS_TABLE, Item={
+                          'subscriptionId': {'S': sub_id},
+                          'customerId': {'S': customer_id},
+                          'orderId': {'S': body['orderId']},
+                          'addonName': {'S': addon.get('name', '')},
+                          'amount': {'N': str(addon.get('price', 0))},
+                          'interval': {'S': 'monthly'},
+                          'status': {'S': 'active'},
+                          'stripeSubscriptionId': {'S': ''},
+                          'createdAt': {'N': str(now)}
+                      })
+
+              return respond(200, {
+                  'success': True,
+                  'orderId': body['orderId'],
+                  'invoiceId': invoice_id,
+                  'customerId': customer_id
+              })
+
+          def get_orders(email):
+              """Get orders by customer email"""
+              try:
+                  resp = ddb.scan(
+                      TableName=ORDERS_TABLE,
+                      FilterExpression='customerEmail = :e',
+                      ExpressionAttributeValues={':e': {'S': email}}
+                  )
+                  orders = []
+                  for item in resp.get('Items', []):
+                      orders.append({
+                          'orderId': item.get('orderId', {}).get('S', ''),
+                          'package': item.get('package', {}).get('S', ''),
+                          'packageName': item.get('packageName', {}).get('S', ''),
+                          'total': float(item.get('total', {}).get('N', '0')),
+                          'status': item.get('status', {}).get('S', ''),
+                          'createdAt': int(item.get('createdAt', {}).get('N', '0'))
+                      })
+                  orders.sort(key=lambda x: x['createdAt'], reverse=True)
+                  return respond(200, {'orders': orders})
+              except Exception as e:
+                  return respond(500, {'error': str(e)})
+
+          def send_confirmation(body):
+              """Send order confirmation email via SES"""
+              order_id = body.get('orderId', '')
+              email = body.get('email', '')
+              if not email:
+                  return respond(400, {'error': 'Missing email'})
+
+              try:
+                  ses.send_email(
+                      Source=SENDER_EMAIL,
+                      Destination={'ToAddresses': [email]},
+                      Message={
+                          'Subject': {'Data': f'Order Confirmed - {order_id} | Angelorum Solutions'},
+                          'Body': {
+                              'Html': {
+                                  'Data': f"""
+                                  <html>
+                                    <body style="font-family: Inter, Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto;">
+                                      <div style="text-align: center; padding: 2rem; background: #0f0a1a; color: white;">
+                                        <h1 style="color: #fbbf24; margin: 0;">Order Confirmed!</h1>
+                                        <p style="color: #b8afd9;">Thank you for choosing Angelorum Solutions</p>
+                                      </div>
+                                      <div style="padding: 2rem;">
+                                        <p>Hi there,</p>
+                                        <p>Your order <strong>{order_id}</strong> has been confirmed and your project is officially underway!</p>
+                                        <h3>What Happens Next:</h3>
+                                        <ol>
+                                          <li><strong>Welcome Questionnaire</strong> - You'll receive a detailed questionnaire shortly</li>
+                                          <li><strong>Discovery Call</strong> - We'll schedule a call within 48 hours</li>
+                                          <li><strong>Strategy &amp; Wireframes</strong> - We'll map out your site in Week 1</li>
+                                          <li><strong>Design &amp; Launch</strong> - Your site goes live within 2-3 weeks</li>
+                                        </ol>
+                                        <p>You can view your order details anytime in your <a href="#" style="color: #7c3aed;">customer portal</a>.</p>
+                                        <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                                        <p style="color: #666; font-size: 12px;">
+                                          <strong>Angelorum Solutions</strong><br>
+                                          Professional Websites for Small Businesses<br>
+                                          inquiry@angelorumsolutions.com
+                                        </p>
+                                      </div>
+                                    </body>
+                                  </html>
+                                  """
+                              }
+                          }
+                      }
+                  )
+                  return respond(200, {'success': True, 'message': 'Confirmation email sent'})
+              except Exception as e:
+                  print(f"SES error: {e}")
+                  return respond(200, {'success': True, 'message': 'Order confirmed (email delivery pending SES verification)'})
+
+          def handler(event, context):
+              try:
+                  method = event.get('requestContext', {}).get('http', {}).get('method', 'UNKNOWN')
+                  path = event.get('rawPath', '')
+                  params = event.get('queryStringParameters', {}) or {}
+
+                  # OPTIONS preflight
+                  if method == 'OPTIONS':
+                      return respond(200, {})
+
+                  # POST /orders — create order
+                  if path.endswith('/orders') and method == 'POST':
+                      body = json.loads(event.get('body', '{}'))
+                      return create_order(body)
+
+                  # GET /orders?email=... — list orders
+                  if path.endswith('/orders') and method == 'GET':
+                      email = params.get('email', '')
+                      if not email:
+                          return respond(400, {'error': 'Missing email parameter'})
+                      return get_orders(email)
+
+                  # POST /send-confirmation — send email
+                  if path.endswith('/send-confirmation') and method == 'POST':
+                      body = json.loads(event.get('body', '{}'))
+                      return send_confirmation(body)
+
+                  return respond(404, {'error': f'Not found: {method} {path}'})
+
+              except json.JSONDecodeError:
+                  return respond(400, {'error': 'Invalid JSON'})
+              except Exception as e:
+                  print(f"Error: {e}")
+                  return respond(500, {'error': 'Internal server error'})
+      Environment:
+        Variables:
+          ORDERS_TABLE: !Ref OrdersTable
+          INVOICES_TABLE: !Ref InvoicesTable
+          CUSTOMERS_TABLE: !Ref CustomersTable
+          SUBSCRIPTIONS_TABLE: !Ref SubscriptionsTable
+
+  PaymentIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt PaymentFunction.Arn
+      PayloadFormatVersion: '2.0'
+
+  PaymentCreateOrderRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'POST /orders'
+      Target: !Sub integrations/${PaymentIntegration}
+
+  PaymentGetOrdersRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'GET /orders'
+      Target: !Sub integrations/${PaymentIntegration}
+
+  PaymentSendConfirmationRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'POST /send-confirmation'
+      Target: !Sub integrations/${PaymentIntegration}
+
+  PaymentLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref PaymentFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${QueryHttpApi}/*/*
+
   QueryApiStage:
     Type: AWS::ApiGatewayV2::Stage
     Properties:
@@ -964,6 +1342,22 @@ Outputs:
   AgencyCloudFrontDistributionId:
     Description: Agency CloudFront distribution ID for web-agency
     Value: !Ref AgencyCloudFrontDistribution
+
+  OrdersTableName:
+    Description: DynamoDB table for payment orders
+    Value: !Ref OrdersTable
+
+  InvoicesTableName:
+    Description: DynamoDB table for invoices
+    Value: !Ref InvoicesTable
+
+  CustomersTableName:
+    Description: DynamoDB table for customers
+    Value: !Ref CustomersTable
+
+  SubscriptionsTableName:
+    Description: DynamoDB table for subscriptions
+    Value: !Ref SubscriptionsTable
 
   WebSocketEndpoint:
     Description: WebSocket API endpoint URL for clients

@@ -1,3 +1,4 @@
 ﻿{
+    "paymentApiEndpoint":  "https://thr22am80g.execute-api.us-east-1.amazonaws.com/api",
     "apiEndpoint":  "https://thr22am80g.execute-api.us-east-1.amazonaws.com/api/inquiries"
 }

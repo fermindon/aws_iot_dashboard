@@ -12,7 +12,9 @@ param(
 
 Write-Host "Deploying CloudFormation stack: $StackName in $Region"
 
-aws cloudformation deploy --template-file infra/cloudformation.yml --stack-name $StackName --region $Region --capabilities CAPABILITY_NAMED_IAM
+# Template is large (>51KB), must use S3 for deployment
+$artifactBucket = "esp1-static-site-websitebucket-vdg6opbm6kz2"
+aws cloudformation deploy --template-file infra/cloudformation.yml --stack-name $StackName --region $Region --capabilities CAPABILITY_NAMED_IAM --s3-bucket $artifactBucket
 
 if ($LASTEXITCODE -ne 0) { throw "CloudFormation deploy failed" }
 
@@ -41,6 +43,7 @@ Write-Host "Creating config for Web Agency with API endpoint..."
 $agencyConfig = @{}
 if ($queryApi -and $queryApi -ne "None") {
   $agencyConfig.apiEndpoint = $queryApi + "/inquiries"
+  $agencyConfig.paymentApiEndpoint = $queryApi
 }
 
 if ($agencyConfig.Count -gt 0) {
