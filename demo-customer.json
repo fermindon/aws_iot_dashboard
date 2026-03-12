@@ -1,0 +1,11 @@
+{
+  "customerId": {"S": "demo-customer-001"},
+  "email": {"S": "demo@angelorum.tech"},
+  "companyName": {"S": "Angelorum Demo"},
+  "subscriptionTier": {"S": "professional"},
+  "aiGenerationsUsed": {"N": "5"},
+  "aiGenerationsLimit": {"N": "100"},
+  "websitesCount": {"N": "0"},
+  "createdAt": {"N": "1773286000000"},
+  "updatedAt": {"N": "1773286000000"}
+}

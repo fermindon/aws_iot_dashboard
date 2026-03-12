@@ -201,6 +201,68 @@ Resources:
           Projection:
             ProjectionType: ALL
 
+  WebsitesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: customerId
+          AttributeType: S
+        - AttributeName: websiteId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: customerId
+          KeyType: HASH
+        - AttributeName: websiteId
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+        - IndexName: WebsiteIdIndex
+          KeySchema:
+            - AttributeName: websiteId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  TemplatesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: templateId
+          AttributeType: S
+        - AttributeName: industry
+          AttributeType: S
+      KeySchema:
+        - AttributeName: templateId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+        - IndexName: IndustryIndex
+          KeySchema:
+            - AttributeName: industry
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  JobsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: jobId
+          AttributeType: S
+        - AttributeName: websiteId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: jobId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+        - IndexName: WebsiteIdIndex
+          KeySchema:
+            - AttributeName: websiteId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
   SubscriptionsTable:
     Type: AWS::DynamoDB::Table
     Properties:

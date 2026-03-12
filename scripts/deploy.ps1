@@ -50,6 +50,17 @@ if ($agencyConfig.Count -gt 0) {
   $agencyConfig | ConvertTo-Json | Set-Content -Path apps\web-agency\website\config.json -Encoding UTF8
 }
 
+Write-Host "Creating config for Dashboard with API endpoint..."
+$dashboardConfig = @{}
+if ($queryApi -and $queryApi -ne "None") {
+  $dashboardConfig.apiEndpoint = $queryApi
+  $dashboardConfig.customerId = "demo-customer-001"
+}
+
+if ($dashboardConfig.Count -gt 0) {
+  $dashboardConfig | ConvertTo-Json | Set-Content -Path apps\dashboard\website\config.json -Encoding UTF8
+}
+
 Write-Host "Building TypeScript..."
 npm run build
 if ($LASTEXITCODE -ne 0) { throw "TypeScript build failed" }
@@ -65,6 +76,10 @@ if ($LASTEXITCODE -ne 0) { throw "s3 sync (fitness-club) failed" }
 Write-Host "Syncing Web Agency to S3..."
 aws s3 sync apps/web-agency/website/ "s3://$bucket/web-agency/" --region $Region --delete
 if ($LASTEXITCODE -ne 0) { throw "s3 sync (web-agency) failed" }
+
+Write-Host "Syncing Dashboard to S3..."
+aws s3 sync apps/dashboard/website/ "s3://$bucket/dashboard/" --region $Region --delete
+if ($LASTEXITCODE -ne 0) { throw "s3 sync (dashboard) failed" }
 
 Write-Host "Invalidating Main CloudFront cache..."
 $mainDistribution = aws cloudformation describe-stacks --stack-name $StackName --region $Region --query "Stacks[0].Outputs[?OutputKey=='MainCloudFrontDistributionId'].OutputValue" --output text
