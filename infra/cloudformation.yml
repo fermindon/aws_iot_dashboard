@@ -27,6 +27,27 @@ Resources:
             Action: s3:GetObject
             Resource: !Sub arn:aws:s3:::${WebsiteBucket}/*
 
+  # CloudFront Function to rewrite /subdir/ → /subdir/index.html
+  SubdirIndexFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub ${AWS::StackName}-subdir-index
+      AutoPublish: true
+      FunctionCode: |
+        function handler(event) {
+          var request = event.request;
+          var uri = request.uri;
+          if (uri.endsWith('/')) {
+            request.uri += 'index.html';
+          } else if (!uri.includes('.')) {
+            request.uri += '/index.html';
+          }
+          return request;
+        }
+      FunctionConfig:
+        Comment: Rewrite subdirectory URIs to index.html
+        Runtime: cloudfront-js-2.0
+
   MainCloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -50,6 +71,9 @@ Resources:
             QueryString: false
             Cookies:
               Forward: none
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt SubdirIndexFunction.FunctionARN
         DefaultRootObject: index.html
 
   AgencyCloudFrontDistribution:
