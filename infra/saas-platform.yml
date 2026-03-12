@@ -13,6 +13,15 @@ Parameters:
     Type: String
     Default: ''
     Description: ARN of the Secrets Manager secret holding the OpenAI API key (leave blank to skip AI features)
+  ImageMode:
+    Type: String
+    Default: stock
+    AllowedValues: [dalle, stock, none]
+    Description: Image generation mode - 'dalle' (AI-generated, costs ~$0.08/image), 'stock' (free Unsplash photos), 'none' (skip images)
+  UnsplashAccessKey:
+    Type: String
+    Default: ''
+    Description: Unsplash API access key for higher-quality stock photo search (optional, free tier works without it)
 
 Conditions:
   HasOpenAISecret: !Not [!Equals [!Ref OpenAISecretArn, '']]
@@ -330,7 +339,7 @@ Resources:
     Properties:
       FunctionName: !Sub saas-website-generator-${EnvironmentName}
       Handler: index.handler
-      Runtime: python3.11
+      Runtime: nodejs20.x
       Role: !GetAtt SaaSLambdaRole.Arn
       Timeout: 900
       MemorySize: 512
@@ -344,12 +353,14 @@ Resources:
           CDN_DOMAIN: !GetAtt GeneratedSitesCDN.DomainName
           CDN_DISTRIBUTION_ID: !Ref GeneratedSitesCDN
           OPENAI_SECRET_ARN: !If [HasOpenAISecret, !Ref OpenAISecretArn, '']
+          IMAGE_MODE: !Ref ImageMode
+          UNSPLASH_ACCESS_KEY: !Ref UnsplashAccessKey
           ENVIRONMENT: !Ref EnvironmentName
       Code:
         ZipFile: |
-          import json
-          def handler(event, context):
-              return {'statusCode': 200, 'body': json.dumps({'status': 'placeholder'})}
+          exports.handler = async (event) => {
+              return { statusCode: 200, body: JSON.stringify({ status: 'placeholder' }) };
+          };
 
   # ──────────────────────────────────────────────
   #  SQS — Generation Queue
@@ -407,7 +418,7 @@ Resources:
       ProtocolType: HTTP
       CorsConfiguration:
         AllowOrigins: ['*']
-        AllowMethods: [GET, POST, PUT, DELETE, OPTIONS]
+        AllowMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
         AllowHeaders: ['*']
         ExposeHeaders: ['*']
         MaxAge: 86400
@@ -438,6 +449,13 @@ Resources:
       Target: !Sub integrations/${ApiRouterIntegration}
 
   # Customers
+  ListCustomersRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'GET /customers'
+      Target: !Sub integrations/${ApiRouterIntegration}
+
   CreateCustomerRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -457,6 +475,27 @@ Resources:
     Properties:
       ApiId: !Ref SaaSHttpApi
       RouteKey: 'PUT /customers/{customerId}'
+      Target: !Sub integrations/${ApiRouterIntegration}
+
+  DeleteCustomerRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'DELETE /customers/{customerId}'
+      Target: !Sub integrations/${ApiRouterIntegration}
+
+  SyncCustomerWebsiteCountRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'PATCH /customers/{customerId}/sync-website-count'
+      Target: !Sub integrations/${ApiRouterIntegration}
+
+  SyncAllCustomersRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'PATCH /customers/sync-all'
       Target: !Sub integrations/${ApiRouterIntegration}
 
   # Websites
@@ -500,6 +539,13 @@ Resources:
     Properties:
       ApiId: !Ref SaaSHttpApi
       RouteKey: 'POST /websites/{websiteId}/publish'
+      Target: !Sub integrations/${ApiRouterIntegration}
+
+  InvalidateCacheRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'POST /websites/{websiteId}/invalidate-cache'
       Target: !Sub integrations/${ApiRouterIntegration}
 
   # Templates

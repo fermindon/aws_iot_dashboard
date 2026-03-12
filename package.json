@@ -5,6 +5,7 @@
   "scripts": {
     "build": "esbuild apps/iot-dashboard/website/ts/*.ts --bundle --outdir=apps/iot-dashboard/website/js --minify",
     "build:api-router": "esbuild platform/functions/api-router/src/index.ts --bundle --platform=node --target=node20 --outfile=dist/api-router/index.js --external:@aws-sdk/*",
+    "build:generator": "esbuild platform/functions/website-generator/src/handler.ts --bundle --platform=node --target=node20 --outfile=dist/website-generator/index.js --external:@aws-sdk/*",
     "watch": "esbuild apps/iot-dashboard/website/ts/*.ts --bundle --outdir=apps/iot-dashboard/website/js --watch",
     "serve": "npx serve apps/iot-dashboard/website -p 3000",
     "serve:dashboard": "npx serve apps/dashboard/website -p 3001",
@@ -17,6 +18,8 @@
   "devDependencies": {
     "@aws-sdk/client-cloudfront": "^3.1005.0",
     "@aws-sdk/client-dynamodb": "^3.1005.0",
+    "@aws-sdk/client-s3": "^3.1005.0",
+    "@aws-sdk/client-secrets-manager": "^3.1005.0",
     "@aws-sdk/client-sqs": "^3.1005.0",
     "@aws-sdk/lib-dynamodb": "^3.1005.0",
     "@types/aws-lambda": "^8.10.161",

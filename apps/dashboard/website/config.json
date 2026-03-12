@@ -1,4 +1,5 @@
 ﻿{
-    "customerId":  "demo-customer-001",
-    "apiEndpoint":  "https://thr22am80g.execute-api.us-east-1.amazonaws.com/api"
+    "apiEndpoint":  "https://9yvmc32yo3.execute-api.us-east-1.amazonaws.com/api",
+    "customerId":  "cust_fa3abe75bb63",
+    "cdnDomain":  "de9eabql35m1o.cloudfront.net"
 }

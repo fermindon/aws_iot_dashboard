@@ -1150,6 +1150,13 @@ Resources:
       Target: !Sub integrations/${SaasApiIntegration}
 
   # SaaS API Routes — Customers
+  SaasListCustomersRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'GET /customers'
+      Target: !Sub integrations/${SaasApiIntegration}
+
   SaasCreateCustomerRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -1169,6 +1176,27 @@ Resources:
     Properties:
       ApiId: !Ref QueryHttpApi
       RouteKey: 'PUT /customers/{customerId}'
+      Target: !Sub integrations/${SaasApiIntegration}
+
+  SaasDeleteCustomerRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'DELETE /customers/{customerId}'
+      Target: !Sub integrations/${SaasApiIntegration}
+
+  SaasSyncCustomerWebsiteCountRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'PATCH /customers/{customerId}/sync-website-count'
+      Target: !Sub integrations/${SaasApiIntegration}
+
+  SaasSyncAllCustomersRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'PATCH /customers/sync-all'
       Target: !Sub integrations/${SaasApiIntegration}
 
   # SaaS API Routes — Websites

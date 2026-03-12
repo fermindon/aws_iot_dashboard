@@ -29,6 +29,8 @@ TEMPLATE_BUCKET   = os.environ.get('TEMPLATE_BUCKET', '')
 CDN_DOMAIN        = os.environ.get('CDN_DOMAIN', '')
 CDN_DISTRIBUTION  = os.environ.get('CDN_DISTRIBUTION_ID', '')
 OPENAI_SECRET_ARN = os.environ.get('OPENAI_SECRET_ARN', '')
+IMAGE_MODE        = os.environ.get('IMAGE_MODE', 'stock')  # 'dalle', 'stock', or 'none'
+UNSPLASH_ACCESS_KEY = os.environ.get('UNSPLASH_ACCESS_KEY', '')
 
 
 # ── Image helpers ────────────────────────────────────
@@ -58,6 +60,257 @@ def _resolve_image(url, customer_id, website_id, prefix, idx):
         return ''
     if url.startswith('data:'):
         return _upload_data_url(url, customer_id, website_id, prefix, idx)
+    return url
+
+
+def _upload_url_to_s3(image_url, customer_id, website_id, prefix, index):
+    """Download image from URL and upload to S3, returning CDN URL."""
+    import urllib.request
+    try:
+        req = urllib.request.Request(image_url, headers={'User-Agent': 'SaaS-Website-Generator/1.0'})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = resp.read()
+            content_type = resp.headers.get('Content-Type', 'image/jpeg')
+        ext = mimetypes.guess_extension(content_type.split(';')[0]) or '.jpg'
+        key = f'{customer_id}/{website_id}/img/{prefix}_{index}{ext}'
+        s3.put_object(
+            Bucket=GENERATED_BUCKET,
+            Key=key,
+            Body=data,
+            ContentType=content_type,
+            CacheControl='public, max-age=31536000',
+        )
+        cdn_url = f'https://{CDN_DOMAIN}/{key}'
+        print(f'[generator] Uploaded image to S3 → {cdn_url}')
+        return cdn_url
+    except Exception as e:
+        print(f'[generator] Failed to download/upload image {image_url}: {e}')
+        return image_url  # return original URL as fallback
+
+
+# ── DALL-E Image Generation ──────────────────────────
+def _generate_dalle_image(prompt, size='1792x1024'):
+    """Generate an image via DALL-E 3 API. Returns the image URL or empty string."""
+    api_key = _get_openai_key()
+    if not api_key:
+        print('[generator] No OpenAI key — cannot generate DALL-E image')
+        return ''
+    try:
+        import urllib.request
+        body = json.dumps({
+            'model': 'dall-e-3',
+            'prompt': prompt,
+            'n': 1,
+            'size': size,
+            'quality': 'standard',
+        }).encode()
+        req = urllib.request.Request(
+            'https://api.openai.com/v1/images/generations',
+            data=body,
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {api_key}',
+            },
+        )
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            result = json.loads(resp.read().decode())
+        url = result['data'][0].get('url', '')
+        print(f'[generator] DALL-E image generated: {url[:80]}...')
+        return url
+    except Exception as e:
+        print(f'[generator] DALL-E generation failed: {type(e).__name__}: {e}')
+        return ''
+
+
+# ── Stock Photo Search ───────────────────────────────
+def _search_unsplash(query, orientation='landscape'):
+    """Search for a stock photo. Tries Unsplash API (if key), then Pexels, then Picsum."""
+    import urllib.request, urllib.parse
+
+    # 1. Unsplash API (requires key)
+    if UNSPLASH_ACCESS_KEY:
+        try:
+            params = urllib.parse.urlencode({
+                'query': query,
+                'orientation': orientation,
+                'per_page': 1,
+                'content_filter': 'high',
+            })
+            req = urllib.request.Request(
+                f'https://api.unsplash.com/search/photos?{params}',
+                headers={'Authorization': f'Client-ID {UNSPLASH_ACCESS_KEY}'},
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode())
+            results = data.get('results', [])
+            if results:
+                url = results[0]['urls'].get('regular', '')
+                print(f'[generator] Unsplash (API): {url[:80]}...')
+                return url
+        except Exception as e:
+            print(f'[generator] Unsplash API failed: {e}')
+
+    # 2. Picsum: reliable placeholder images with deterministic seeds from query
+    try:
+        import hashlib
+        seed = hashlib.md5(query.encode()).hexdigest()[:8]
+        w, h = (1600, 900) if orientation == 'landscape' else (900, 1200)
+        url = f'https://picsum.photos/seed/{seed}/{w}/{h}'
+        # Resolve redirect to get actual image URL
+        req = urllib.request.Request(url, method='HEAD', headers={'User-Agent': 'SaaS-Website-Generator/1.0'})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            final_url = resp.url
+        if final_url:
+            print(f'[generator] Picsum photo: {final_url[:80]}...')
+            return final_url
+    except Exception as e:
+        print(f'[generator] Picsum failed: {e}')
+
+    # 3. Final fallback: direct Picsum URL (browser follows redirect)
+    import hashlib
+    seed = hashlib.md5(query.encode()).hexdigest()[:8]
+    w, h = (1600, 900) if orientation == 'landscape' else (900, 1200)
+    fallback = f'https://picsum.photos/seed/{seed}/{w}/{h}'
+    print(f'[generator] Picsum fallback: {fallback}')
+    return fallback
+
+
+def _search_stock_photo(query, orientation='landscape'):
+    """Search for a stock photo. Tries Unsplash, returns URL or empty string."""
+    url = _search_unsplash(query, orientation)
+    if url:
+        return url
+    print(f'[generator] No stock photo found for "{query}"')
+    return ''
+
+
+# ── Image Generation Orchestrator ────────────────────
+def generate_images_for_website(website, content, customer_id, website_id, image_mode=None):
+    """
+    Generate images for the website based on image_mode.
+    Returns a dict of image keys → CDN URLs.
+    Modes: 'dalle' (AI-generated), 'stock' (Unsplash), 'none' (skip).
+    image_mode param overrides the global IMAGE_MODE env var.
+    """
+    mode = (image_mode or IMAGE_MODE).lower()
+    if mode == 'none':
+        print('[generator] Image generation disabled (IMAGE_MODE=none)')
+        return {}
+
+    business_name = website.get('businessName', 'Business')
+    industry = website.get('industry', 'general')
+    enabled_sections = website.get('enabledSections', [])
+    if not enabled_sections:
+        enabled_sections = ['hero', 'services', 'testimonials', 'contact']
+
+    images = {}
+    print(f'[generator] Generating images mode={mode} for {business_name} ({industry})')
+
+    # ── Hero image ──────────────────────────────
+    if 'hero' in enabled_sections:
+        hero_headline = content.get('hero_headline', f'{business_name}')
+        if mode == 'dalle':
+            prompt = (
+                f'Professional website hero banner for a {industry} business called "{business_name}". '
+                f'Theme: {hero_headline}. '
+                f'Modern, clean, high-quality photographic style. No text or logos in the image. '
+                f'Wide landscape composition suitable for a website header.'
+            )
+            url = _generate_dalle_image(prompt, '1792x1024')
+            if url:
+                cdn_url = _upload_url_to_s3(url, customer_id, website_id, 'hero', 0)
+                images['hero'] = cdn_url
+        if 'hero' not in images:
+            # Fallback to stock for dalle failures, or primary path for stock mode
+            query = f'{industry} business professional'
+            url = _search_stock_photo(query)
+            if url:
+                cdn_url = _upload_url_to_s3(url, customer_id, website_id, 'hero', 0)
+                images['hero'] = cdn_url
+
+    # ── About image ─────────────────────────────
+    if 'about' in enabled_sections:
+        if mode == 'dalle':
+            prompt = (
+                f'Professional team photo for a {industry} company called "{business_name}". '
+                f'Warm, inviting office or workspace environment. No text. Photographic style.'
+            )
+            url = _generate_dalle_image(prompt, '1024x1024')
+            if url:
+                cdn_url = _upload_url_to_s3(url, customer_id, website_id, 'about', 0)
+                images['about'] = cdn_url
+        if 'about' not in images:
+            query = f'{industry} office team workspace'
+            url = _search_stock_photo(query)
+            if url:
+                cdn_url = _upload_url_to_s3(url, customer_id, website_id, 'about', 0)
+                images['about'] = cdn_url
+
+    # ── Service images ──────────────────────────
+    if 'services' in enabled_sections:
+        services = content.get('services', [])
+        for i, svc in enumerate(services[:3]):
+            svc_name = svc.get('name', 'service')
+            if mode == 'dalle':
+                prompt = (
+                    f'Professional image representing "{svc_name}" service in the {industry} industry. '
+                    f'Clean, modern style. No text. Suitable as a small card image.'
+                )
+                url = _generate_dalle_image(prompt, '1024x1024')
+                if url:
+                    cdn_url = _upload_url_to_s3(url, customer_id, website_id, 'service', i)
+                    images[f'service_{i}'] = cdn_url
+            if f'service_{i}' not in images:
+                query = f'{industry} {svc_name}'
+                url = _search_stock_photo(query)
+                if url:
+                    cdn_url = _upload_url_to_s3(url, customer_id, website_id, 'service', i)
+                    images[f'service_{i}'] = cdn_url
+
+    # ── Portfolio/work images ───────────────────
+    if 'portfolio' in enabled_sections:
+        portfolio = content.get('portfolio_items', [])
+        for i, item in enumerate(portfolio[:3]):
+            title = item.get('title', 'project')
+            if mode == 'dalle':
+                prompt = (
+                    f'Portfolio showcase image for "{title}" — a {industry} project. '
+                    f'Professional, polished look. No text. Photographic style.'
+                )
+                url = _generate_dalle_image(prompt, '1024x1024')
+                if url:
+                    cdn_url = _upload_url_to_s3(url, customer_id, website_id, 'portfolio', i)
+                    images[f'portfolio_{i}'] = cdn_url
+            if f'portfolio_{i}' not in images:
+                query = f'{industry} {title} project work'
+                url = _search_stock_photo(query)
+                if url:
+                    cdn_url = _upload_url_to_s3(url, customer_id, website_id, 'portfolio', i)
+                    images[f'portfolio_{i}'] = cdn_url
+
+    # ── Blog post images ────────────────────────
+    if 'blog' in enabled_sections:
+        posts = content.get('blog_posts', [])
+        for i, post in enumerate(posts[:2]):
+            title = post.get('title', 'article')
+            if mode == 'dalle':
+                prompt = (
+                    f'Blog article header image for "{title}" in the {industry} industry. '
+                    f'Editorial style, clean. No text. Landscape composition.'
+                )
+                url = _generate_dalle_image(prompt, '1792x1024')
+                if url:
+                    cdn_url = _upload_url_to_s3(url, customer_id, website_id, 'blog', i)
+                    images[f'blog_{i}'] = cdn_url
+            if f'blog_{i}' not in images:
+                query = f'{industry} {title}'
+                url = _search_stock_photo(query)
+                if url:
+                    cdn_url = _upload_url_to_s3(url, customer_id, website_id, 'blog', i)
+                    images[f'blog_{i}'] = cdn_url
+
+    print(f'[generator] Generated {len(images)} images: {list(images.keys())}')
+    return images
     return url
 
 
@@ -269,29 +522,44 @@ def _html_esc(text):
         .replace('"', '&quot;'))
 
 
-def _section_hero(website, c):
+def _section_hero(website, c, images=None):
+    images = images or {}
     logo = _html_esc(website.get('branding', {}).get('logoText', website.get('businessName', 'Site')))
+    hero_img = images.get('hero', '')
+    bg_style = f'background-image:linear-gradient(rgba(0,0,0,0.55),rgba(0,0,0,0.55)),url({hero_img});background-size:cover;background-position:center;' if hero_img else ''
     return f"""
-    <section class="hero">
+    <section class="hero" style="{bg_style}">
         <h1>{_html_esc(c.get('hero_headline', f'Welcome to {logo}'))}</h1>
         <p>{_html_esc(c.get('hero_subheadline', ''))}</p>
         <a href="#contact" class="btn-primary">{_html_esc(c.get('hero_cta', 'Get Started'))}</a>
     </section>"""
 
 
-def _section_about(website, c):
+def _section_about(website, c, images=None):
+    images = images or {}
+    about_img = images.get('about', '')
+    img_html = f'<img src="{about_img}" alt="About us" class="about-img">' if about_img else ''
+    wrapper_class = 'about-with-image' if about_img else ''
     return f"""
-    <section id="about">
-        <h2 class="section-title">{_html_esc(c.get('about_title', 'About Us'))}</h2>
-        <p class="about-text">{_html_esc(c.get('about_text', ''))}</p>
+    <section id="about" class="{wrapper_class}">
+        <div class="about-content">
+            <h2 class="section-title">{_html_esc(c.get('about_title', 'About Us'))}</h2>
+            <p class="about-text">{_html_esc(c.get('about_text', ''))}</p>
+        </div>
+        {img_html}
     </section>"""
 
 
-def _section_services(website, c):
+def _section_services(website, c, images=None):
+    if images is None:
+        images = {}
     cards = ''
-    for svc in c.get('services', []):
+    for i, svc in enumerate(c.get('services', [])):
+        img_url = images.get(f'service_{i}', '')
+        img_html = f'<img src="{img_url}" alt="{_html_esc(svc.get("name", ""))}" class="service-img">' if img_url else ''
         cards += f"""
             <div class="service-card">
+                {img_html}
                 <div class="service-icon">{svc.get('icon', '✦')}</div>
                 <h3>{_html_esc(svc.get('name', ''))}</h3>
                 <p>{_html_esc(svc.get('description', ''))}</p>
@@ -408,20 +676,24 @@ def _section_testimonials(website, c):
     </section>"""
 
 
-def _section_portfolio(website, c):
+def _section_portfolio(website, c, images=None):
+    images = images or {}
     # Prefer case studies from user, fall back to AI portfolio items
     case_studies = website.get('caseStudies', [])
     items = case_studies if case_studies else c.get('portfolio_items', [])
     if not items:
         return ''
     cards = ''
-    for item in items:
+    for i, item in enumerate(items):
         title = item.get('title', '')
         desc  = item.get('description', '')
         extra = item.get('result') or item.get('category', '')
         badge = f'<span class="portfolio-badge">{_html_esc(extra)}</span>' if extra else ''
+        port_img = images.get(f'portfolio_{i}', '')
+        img_html = f'<img src="{port_img}" alt="{_html_esc(title)}" class="portfolio-img">' if port_img else ''
         cards += f"""
             <div class="portfolio-card">
+                {img_html}
                 <h3>{_html_esc(title)}</h3>
                 <p>{_html_esc(desc)}</p>
                 {badge}
@@ -453,14 +725,18 @@ def _section_faqs(website, c):
     </section>"""
 
 
-def _section_blog(website, c):
+def _section_blog(website, c, images=None):
+    images = images or {}
     posts = c.get('blog_posts', [])
     if not posts:
         return ''
     cards = ''
-    for post in posts:
+    for i, post in enumerate(posts):
+        blog_img = images.get(f'blog_{i}', '')
+        img_html = f'<img src="{blog_img}" alt="{_html_esc(post.get("title", ""))}" class="blog-img">' if blog_img else ''
         cards += f"""
             <div class="blog-card">
+                {img_html}
                 <span class="blog-date">{_html_esc(post.get('date', ''))}</span>
                 <h3>{_html_esc(post.get('title', ''))}</h3>
                 <p>{_html_esc(post.get('excerpt', ''))}</p>
@@ -569,16 +845,16 @@ def render_website_html(website, content, images=None):
 
     # Map section names → renderer callables
     section_map = {
-        'hero':         lambda: _section_hero(website, c),
-        'about':        lambda: _section_about(website, c),
-        'services':     lambda: _section_services(website, c),
+        'hero':         lambda: _section_hero(website, c, images),
+        'about':        lambda: _section_about(website, c, images),
+        'services':     lambda: _section_services(website, c, images),
         'products':     lambda: _section_products(website, c, images),
         'pricing':      lambda: _section_pricing(website, c),
         'team':         lambda: _section_team(website, c, images),
         'testimonials': lambda: _section_testimonials(website, c),
-        'portfolio':    lambda: _section_portfolio(website, c),
+        'portfolio':    lambda: _section_portfolio(website, c, images),
         'faqs':         lambda: _section_faqs(website, c),
-        'blog':         lambda: _section_blog(website, c),
+        'blog':         lambda: _section_blog(website, c, images),
         'gallery':      lambda: _section_gallery(website, c, images),
         'contact':      lambda: _section_contact(website, c),
     }
@@ -635,17 +911,31 @@ def render_website_html(website, content, images=None):
 
         /* About */
         .about-text {{ max-width:700px; margin:0 auto; text-align:center; color:var(--text-light); font-size:1.1rem; }}
+        .about-with-image {{ display:flex; align-items:center; gap:3rem; max-width:1100px; margin:0 auto; }}
+        .about-with-image .about-content {{ flex:1; }}
+        .about-with-image .about-content .section-title {{ text-align:left; }}
+        .about-with-image .about-text {{ text-align:left; margin:0; }}
+        .about-img {{ width:400px; height:300px; object-fit:cover; border-radius:var(--radius); flex-shrink:0; }}
+        @media (max-width:768px) {{ .about-with-image {{ flex-direction:column; }} .about-img {{ width:100%; height:auto; }} }}
 
         /* Grids */
         .grid-2 {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:2rem; max-width:1100px; margin:0 auto; }}
         .grid-3 {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:2rem; max-width:1100px; margin:0 auto; }}
 
         /* Service cards */
-        .service-card {{ background:#f8f9fa; border-radius:var(--radius); padding:2rem; text-align:center; transition:transform .2s, box-shadow .2s; }}
+        .service-card {{ background:#f8f9fa; border-radius:var(--radius); padding:0; text-align:center; transition:transform .2s, box-shadow .2s; overflow:hidden; }}
         .service-card:hover {{ transform:translateY(-4px); box-shadow:0 12px 30px rgba(0,0,0,.08); }}
-        .service-icon {{ font-size:2.5rem; margin-bottom:1rem; }}
-        .service-card h3 {{ margin-bottom:.5rem; color:var(--primary); }}
-        .service-card p {{ color:var(--text-light); }}
+        .service-icon {{ font-size:2.5rem; margin-bottom:1rem; padding-top:2rem; }}
+        .service-img {{ width:100%; height:180px; object-fit:cover; }}
+        .service-card h3 {{ margin-bottom:.5rem; color:var(--primary); padding:0 1.5rem; }}
+        .service-card h3:first-of-type {{ padding-top:1.5rem; }}
+        .service-card p {{ color:var(--text-light); padding:0 1.5rem 1.5rem; }}
+
+        /* Portfolio cards */
+        .portfolio-img {{ width:100%; height:200px; object-fit:cover; border-radius:var(--radius) var(--radius) 0 0; margin-bottom:1rem; }}
+
+        /* Blog images */
+        .blog-img {{ width:100%; height:180px; object-fit:cover; border-radius:var(--radius) var(--radius) 0 0; margin-bottom:1rem; }}
 
         /* Product cards */
         .product-card {{ background:white; border-radius:var(--radius); overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,.06); transition:transform .2s; }}
@@ -831,6 +1121,7 @@ def handler(event, context):
         website_id = body.get('websiteId', '')
         website    = body.get('website', {})
         customer_id = website.get('customerId', body.get('customerId', ''))
+        req_image_mode = body.get('imageMode')  # per-request override
 
         print(f'[generator] Processing job={job_id}  website={website_id}')
 
@@ -871,6 +1162,19 @@ def handler(event, context):
                 'tokensUsed': result.get('tokensUsed', 0),
                 'model': result.get('model', 'unknown'),
             })
+
+            # 1b. Generate images (DALL-E or stock photos) for sections
+            effective_mode = (req_image_mode or IMAGE_MODE).lower()
+            if effective_mode != 'none':
+                _update_job(job_id, 'generating-images')
+                ai_images = generate_images_for_website(
+                    website, content, customer_id, website_id,
+                    image_mode=effective_mode
+                )
+                # Merge: user-provided images take priority over AI/stock
+                for k, v in ai_images.items():
+                    if k not in images:
+                        images[k] = v
 
             # 2. Render HTML with ALL sections + images
             html = render_website_html(website, {'content': content}, images)

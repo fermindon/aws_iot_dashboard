@@ -181,6 +181,16 @@ function tierLimits(tier: string): number {
 }
 
 // ── Customer Handlers ───────────────────────────────
+async function listCustomers(): Promise<ApiResponse> {
+  const result = await ddb.send(
+    new ScanCommand({ TableName: CUSTOMERS_TABLE })
+  );
+  const customers = (result.Items || []) as Record<string, unknown>[];
+  // Sort by createdAt descending (most recent first)
+  customers.sort((a, b) => ((b.createdAt as number) || 0) - ((a.createdAt as number) || 0));
+  return resp(200, { customers } as unknown as Record<string, unknown>);
+}
+
 async function createCustomer(body: Record<string, unknown>): Promise<ApiResponse> {
   const customerId = `cust_${shortId()}`;
   const tier = (body.subscriptionTier as string) || 'starter';
@@ -212,7 +222,7 @@ async function updateCustomer(
   customerId: string,
   body: Record<string, unknown>
 ): Promise<ApiResponse> {
-  const allowedKeys = ['email', 'companyName', 'subscriptionTier'];
+  const allowedKeys = ['email', 'companyName', 'subscriptionTier', 'imageMode'];
   const updateParts: string[] = [];
   const values: Record<string, unknown> = {};
   const names: Record<string, string> = {};
@@ -253,6 +263,156 @@ async function updateCustomer(
     if ((err as { name?: string }).name === 'ConditionalCheckFailedException') {
       return resp(404, { error: 'Customer not found' });
     }
+    throw err;
+  }
+}
+
+async function deleteCustomer(customerId: string): Promise<ApiResponse> {
+  try {
+    // First, get customer to verify it exists
+    const customer = await ddb.send(
+      new GetCommand({ TableName: CUSTOMERS_TABLE, Key: { customerId } })
+    );
+    if (!customer.Item) return resp(404, { error: 'Customer not found' });
+
+    // Delete all websites for this customer (customerId is the HASH key in WebsitesTable)
+    const websites = await ddb.send(
+      new QueryCommand({
+        TableName: WEBSITES_TABLE,
+        KeyConditionExpression: 'customerId = :cid',
+        ExpressionAttributeValues: { ':cid': customerId },
+        ProjectionExpression: 'websiteId',
+      })
+    );
+
+    // Delete each website
+    if (websites.Items && websites.Items.length > 0) {
+      for (const websiteItem of websites.Items) {
+        const wid = (websiteItem as Record<string, unknown>).websiteId as string;
+        await ddb.send(
+          new DeleteCommand({
+            TableName: WEBSITES_TABLE,
+            Key: { customerId, websiteId: wid },
+          })
+        );
+      }
+    }
+
+    // Delete the customer
+    await ddb.send(
+      new DeleteCommand({
+        TableName: CUSTOMERS_TABLE,
+        Key: { customerId },
+      })
+    );
+
+    return resp(200, { success: true, message: 'Customer and all associated websites deleted' });
+  } catch (err: unknown) {
+    console.error('[deleteCustomer] Error:', err);
+    throw err;
+  }
+}
+
+async function syncCustomerWebsiteCount(customerId: string): Promise<ApiResponse> {
+  try {
+    // Get actual website count
+    const websites = await ddb.send(
+      new QueryCommand({
+        TableName: WEBSITES_TABLE,
+        KeyConditionExpression: 'customerId = :cid',
+        ExpressionAttributeValues: { ':cid': customerId },
+        ProjectionExpression: 'websiteId',
+      })
+    );
+
+    const actualCount = websites.Items?.length || 0;
+
+    // Update customer record
+    const result = await ddb.send(
+      new UpdateCommand({
+        TableName: CUSTOMERS_TABLE,
+        Key: { customerId },
+        UpdateExpression: 'SET websitesCount = :count, updatedAt = :now',
+        ExpressionAttributeValues: { ':count': actualCount, ':now': nowMs() },
+        ReturnValues: 'ALL_NEW',
+        ConditionExpression: 'attribute_exists(customerId)',
+      })
+    );
+
+    return resp(200, { 
+      success: true, 
+      message: `Updated customer websiteCount to ${actualCount}`,
+      customer: result.Attributes as unknown as Record<string, unknown>
+    });
+  } catch (err: unknown) {
+    console.error('[syncCustomerWebsiteCount] Error:', err);
+    throw err;
+  }
+}
+
+async function syncAllCustomersWebsiteCounts(): Promise<ApiResponse> {
+  try {
+    // Get all customers
+    const customersResult = await ddb.send(
+      new ScanCommand({
+        TableName: CUSTOMERS_TABLE,
+        ProjectionExpression: 'customerId',
+      })
+    );
+
+    const customers = customersResult.Items || [];
+    const results = [];
+
+    // Sync each customer
+    for (const customer of customers) {
+      const customerId = customer.customerId as string;
+      
+      try {
+        // Get actual website count
+        const websites = await ddb.send(
+          new QueryCommand({
+            TableName: WEBSITES_TABLE,
+            KeyConditionExpression: 'customerId = :cid',
+            ExpressionAttributeValues: { ':cid': customerId },
+            ProjectionExpression: 'websiteId',
+          })
+        );
+
+        const actualCount = websites.Items?.length || 0;
+
+        // Update customer record
+        const result = await ddb.send(
+          new UpdateCommand({
+            TableName: CUSTOMERS_TABLE,
+            Key: { customerId },
+            UpdateExpression: 'SET websitesCount = :count, updatedAt = :now',
+            ExpressionAttributeValues: { ':count': actualCount, ':now': nowMs() },
+            ConditionExpression: 'attribute_exists(customerId)',
+          })
+        );
+
+        results.push({
+          customerId,
+          actualCount,
+          status: 'synced',
+        });
+      } catch (e: unknown) {
+        console.error(`[syncAllCustomersWebsiteCounts] Error syncing ${customerId}:`, e);
+        results.push({
+          customerId,
+          status: 'error',
+          error: (e as Error).message,
+        });
+      }
+    }
+
+    return resp(200, {
+      success: true,
+      message: `Synced ${results.length} customers`,
+      results,
+    });
+  } catch (err: unknown) {
+    console.error('[syncAllCustomersWebsiteCounts] Error:', err);
     throw err;
   }
 }
@@ -363,7 +523,7 @@ async function getWebsite(websiteId: string): Promise<ApiResponse> {
   const result = await ddb.send(
     new QueryCommand({
       TableName: WEBSITES_TABLE,
-      IndexName: 'WebsiteIdIndex',
+      IndexName: 'websiteId-index',
       KeyConditionExpression: 'websiteId = :wid',
       ExpressionAttributeValues: { ':wid': websiteId },
     })
@@ -381,7 +541,7 @@ async function updateWebsite(
   const query = await ddb.send(
     new QueryCommand({
       TableName: WEBSITES_TABLE,
-      IndexName: 'WebsiteIdIndex',
+      IndexName: 'websiteId-index',
       KeyConditionExpression: 'websiteId = :wid',
       ExpressionAttributeValues: { ':wid': websiteId },
     })
@@ -444,7 +604,7 @@ async function deleteWebsite(websiteId: string): Promise<ApiResponse> {
   const query = await ddb.send(
     new QueryCommand({
       TableName: WEBSITES_TABLE,
-      IndexName: 'WebsiteIdIndex',
+      IndexName: 'websiteId-index',
       KeyConditionExpression: 'websiteId = :wid',
       ExpressionAttributeValues: { ':wid': websiteId },
     })
@@ -466,7 +626,7 @@ async function publishWebsite(websiteId: string): Promise<ApiResponse> {
   const query = await ddb.send(
     new QueryCommand({
       TableName: WEBSITES_TABLE,
-      IndexName: 'WebsiteIdIndex',
+      IndexName: 'websiteId-index',
       KeyConditionExpression: 'websiteId = :wid',
       ExpressionAttributeValues: { ':wid': websiteId },
     })
@@ -503,6 +663,15 @@ async function publishWebsite(websiteId: string): Promise<ApiResponse> {
     })
   );
 
+  // Fetch customer to get imageMode preference
+  let imageMode: string | undefined;
+  try {
+    const custResult = await ddb.send(
+      new GetCommand({ TableName: CUSTOMERS_TABLE, Key: { customerId: website.customerId as string } })
+    );
+    imageMode = (custResult.Item?.imageMode as string) || undefined;
+  } catch (_) { /* ignore — will use Lambda default */ }
+
   // Send to SQS for async processing
   if (GENERATION_QUEUE) {
     await sqs.send(
@@ -512,6 +681,7 @@ async function publishWebsite(websiteId: string): Promise<ApiResponse> {
           jobId,
           websiteId,
           website,
+          ...(imageMode ? { imageMode } : {}),
         }),
       })
     );
@@ -533,7 +703,7 @@ async function invalidateSiteCache(websiteId: string): Promise<ApiResponse> {
   const query = await ddb.send(
     new QueryCommand({
       TableName: WEBSITES_TABLE,
-      IndexName: 'WebsiteIdIndex',
+      IndexName: 'websiteId-index',
       KeyConditionExpression: 'websiteId = :wid',
       ExpressionAttributeValues: { ':wid': websiteId },
     })
@@ -671,14 +841,28 @@ export async function handler(
     }
 
     // ── Customers ────────────────────────────
+    if (path === '/customers' && method === 'GET') {
+      return await listCustomers();
+    }
+
     if (path === '/customers' && method === 'POST') {
       return await createCustomer(body);
+    }
+
+    if (path === '/customers/sync-all' && method === 'PATCH') {
+      return await syncAllCustomersWebsiteCounts();
+    }
+
+    if (path.includes('/customers/') && path.endsWith('/sync-website-count')) {
+      const cid = path.split('/')[2];
+      if (method === 'PATCH') return await syncCustomerWebsiteCount(cid);
     }
 
     if (path.includes('/customers/') && path.split('/').length === 3) {
       const cid = params.customerId || path.split('/')[2];
       if (method === 'GET') return await getCustomer(cid);
       if (method === 'PUT') return await updateCustomer(cid, body);
+      if (method === 'DELETE') return await deleteCustomer(cid);
     }
 
     // ── Websites ─────────────────────────────

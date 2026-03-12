@@ -95,14 +95,20 @@ aws lambda update-function-configuration `
 
 Write-Host "  API Router deployed." -ForegroundColor Green
 
-# ── 4. Package & deploy Website Generator Lambda ─────
-Write-Host "[4/7] Deploying Website Generator Lambda..." -ForegroundColor Yellow
+# ── 4. Build & deploy Website Generator Lambda (TypeScript) ──
+Write-Host "[4/7] Building & deploying Website Generator Lambda..." -ForegroundColor Yellow
 
-$generatorDir = "platform\functions\website-generator"
+$generatorSrc = "platform/functions/website-generator/src/handler.ts"
+$generatorOut = "dist/website-generator"
 $generatorZip = "$env:TEMP\saas-website-generator.zip"
 
+# Build TypeScript with esbuild
+if (Test-Path $generatorOut) { Remove-Item $generatorOut -Recurse -Force }
+npx esbuild $generatorSrc --bundle --platform=node --target=node20 --outfile="$generatorOut/index.js" --external:@aws-sdk/*
+if ($LASTEXITCODE -ne 0) { throw "esbuild failed for Website Generator" }
+
 if (Test-Path $generatorZip) { Remove-Item $generatorZip }
-Compress-Archive -Path "$generatorDir\index.py" -DestinationPath $generatorZip -Force
+Compress-Archive -Path "$generatorOut\index.js" -DestinationPath $generatorZip -Force
 
 aws lambda update-function-code `
   --function-name $generatorName `

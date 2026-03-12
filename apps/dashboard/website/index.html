@@ -28,6 +28,23 @@
             --shadow-lg: 0 4px 12px rgba(0,0,0,0.1);
         }
 
+        /* ── Dark Mode ─────────────────────────── */
+        html.dark-mode {
+            --bg: #1a1a1a;
+            --surface: #2d2d2d;
+            --text: #f0f0f0;
+            --text-light: #c0c0c0;
+            --text-lighter: #a0a0a0;
+            --border: #4a4a4a;
+            --primary-light: #1e3a5f;
+            --success-bg: #1a3a2a;
+            --warning-bg: #3a2a1a;
+            --error-bg: #3a1a1a;
+            --info-bg: #1a2a3a;
+            --shadow: 0 1px 3px rgba(0,0,0,0.4);
+            --shadow-lg: 0 4px 12px rgba(0,0,0,0.6);
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
         a { color: var(--primary); text-decoration: none; }
@@ -48,7 +65,7 @@
         .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; }
         .nav-item {
             display: flex; align-items: center; gap: 0.75rem; padding: 0.7rem 1rem;
-            color: rgba(255,255,255,0.65); text-decoration: none; border-radius: 8px;
+            color: rgba(255,255,255,0.75); text-decoration: none; border-radius: 8px;
             cursor: pointer; transition: all 0.15s; font-size: 0.9rem; font-weight: 500;
             user-select: none;
         }
@@ -59,6 +76,15 @@
             padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);
             font-size: 0.75rem; color: rgba(255,255,255,0.35); text-align: center;
         }
+        .dark-mode-btn {
+            background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer;
+            font-size: 1.2rem; padding: 0.4rem; transition: all 0.2s;
+            margin-bottom: 0.5rem; display: block; margin-left: auto; margin-right: auto;
+        }
+        .dark-mode-btn:hover { color: white; transform: scale(1.15); }
+        html.dark-mode .dark-mode-btn { color: rgba(255,255,255,0.8); }
+        html.dark-mode .dark-mode-btn::after { content: '☀️'; color: rgba(255,255,255,0.6); }
+        html.dark-mode .dark-mode-btn { font-size: 0; }  /* Hide moon, show sun via ::after */
 
         /* ── Main Content ──────────────────────── */
         .main { margin-left: 240px; padding: 2rem; min-height: 100vh; transition: margin-left 0.2s; }
@@ -108,9 +134,11 @@
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 0.75rem 1.25rem; text-align: left; }
         th { font-size: 0.75rem; text-transform: uppercase; color: var(--text-light); font-weight: 600; letter-spacing: 0.5px; background: #f8fafc; }
+        html.dark-mode th { background: #3a3a3a; }
         tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
         tbody tr { transition: background 0.1s; }
         tbody tr:hover { background: #f8fafc; }
+        html.dark-mode tbody tr:hover { background: #3a3a3a; }
 
         /* ── Badge ─────────────────────────────── */
         .badge {
@@ -127,6 +155,12 @@
         .badge-generating::before { background: var(--info); }
         .badge-error, .badge-failed { background: var(--error-bg); color: #991b1b; }
         .badge-error::before, .badge-failed::before { background: var(--error); }
+
+        /* Dark mode badge overrides */
+        html.dark-mode .badge-published { color: #86efac; }
+        html.dark-mode .badge-draft { color: #fbbf24; }
+        html.dark-mode .badge-generating { color: #60a5fa; }
+        html.dark-mode .badge-error, html.dark-mode .badge-failed { color: #f87171; }
 
         @keyframes pulse {
             0%, 100% { opacity: 1; }
@@ -160,8 +194,24 @@
             width: 100%; padding: 0.55rem 0.8rem; border: 1px solid var(--border);
             border-radius: 8px; font-size: 0.9rem; font-family: inherit;
             transition: border-color 0.15s, box-shadow 0.15s; background: white;
+            color: var(--text);
         }
         .form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .form-readonly { background: #f8fafc; cursor: text; }
+        html.dark-mode .form-control { background: #3a3a3a; color: #f0f0f0; border-color: #555; }
+        html.dark-mode .form-control:focus { box-shadow: 0 0 0 3px rgba(37,99,235,0.25); }
+        html.dark-mode .form-control::placeholder { color: #9a9a9a; opacity: 1; }
+        html.dark-mode .form-readonly { background: #333; color: #bbb; }
+        html.dark-mode .filter-select { background: #3a3a3a; color: #f0f0f0; border-color: #555; }
+        html.dark-mode .search-input input { background: #3a3a3a; color: #f0f0f0; border-color: #555; }
+        html.dark-mode .search-input input::placeholder { color: #9a9a9a; opacity: 1; }
+        html.dark-mode option { background: #3a3a3a; color: #f0f0f0; }
+        html.dark-mode .card-header { background: #353535; border-bottom-color: #444; }
+        html.dark-mode .detail-row .dl { color: #bbb; }
+        html.dark-mode .detail-row .dv { color: #f0f0f0; }
+        html.dark-mode .modal-header { border-bottom-color: #444; }
+        html.dark-mode .modal-footer { border-top-color: #444; }
+        html.dark-mode .sidebar { background: #1a1a1a; }
         textarea.form-control { resize: vertical; min-height: 80px; }
         select.form-control { appearance: auto; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
@@ -173,9 +223,12 @@
             z-index: 100; align-items: center; justify-content: center;
             backdrop-filter: blur(4px);
         }
+        html.dark-mode .modal-overlay { background: rgba(0,0,0,0.7); }
         .modal-overlay.active { display: flex; }
         .modal {
             background: white; border-radius: 12px; padding: 0;
+        }
+        html.dark-mode .modal { background: var(--surface); }
             width: 90%; max-width: 580px; max-height: 90vh; overflow: hidden;
             box-shadow: var(--shadow-lg); animation: modalIn 0.2s ease-out;
         }
@@ -275,6 +328,9 @@
 
         /* ── Settings ──────────────────────────── */
         .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .image-mode-option { transition: border-color 0.15s, background 0.15s; }
+        .image-mode-option:has(input:checked) { border-color: var(--primary) !important; background: var(--primary-light); }
+        .image-mode-option:hover { border-color: var(--text-lighter) !important; }
 
         /* ── Search / Filter bar ───────────────── */
         .filter-bar {
@@ -405,9 +461,117 @@
         .photo-upload:focus,
         .image-upload:focus { outline: none; border-color: var(--primary); }
         .upload-status { display: block; font-size: 0.78rem; color: var(--text-light); margin-top: 0.2rem; }
+
+        /* ── Login Screen ──────────────────────── */
+        .login-screen {
+            position: fixed; inset: 0; z-index: 300;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .login-screen.hidden { display: none; }
+        .login-card {
+            background: white; border-radius: 16px; padding: 2.5rem;
+            width: 90%; max-width: 400px; box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+            animation: modalIn 0.3s ease-out;
+        }
+        .login-brand {
+            text-align: center; margin-bottom: 2rem;
+        }
+        .login-brand h1 {
+            font-size: 1.5rem; font-weight: 800; color: var(--text);
+        }
+        .login-brand h1 .accent { color: var(--primary); }
+        .login-brand p { font-size: 0.88rem; color: var(--text-light); margin-top: 0.35rem; }
+        .login-error {
+            display: none; background: var(--error-bg); color: #991b1b;
+            padding: 0.6rem 0.9rem; border-radius: 8px; font-size: 0.82rem;
+            margin-bottom: 1rem; font-weight: 500;
+        }
+        .login-error.show { display: block; }
+
+        /* ── Customer Picker ───────────────────── */
+        .customer-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.25rem;
+        }
+        .customer-card {
+            background: var(--surface); border-radius: var(--radius);
+            box-shadow: var(--shadow); padding: 1.25rem 1.5rem;
+            cursor: pointer; transition: all 0.2s; border: 2px solid transparent;
+        }
+        .customer-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); border-color: var(--primary); }
+        .customer-card .cc-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
+        .customer-card .cc-avatar {
+            width: 42px; height: 42px; border-radius: 10px;
+            background: var(--primary-light); color: var(--primary);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 1rem; flex-shrink: 0;
+        }
+        .customer-card .cc-name { font-weight: 700; font-size: 0.95rem; }
+        .customer-card .cc-email { font-size: 0.8rem; color: var(--text-light); }
+        .customer-card .cc-stats {
+            display: flex; gap: 1rem; padding-top: 0.75rem;
+            border-top: 1px solid var(--border); font-size: 0.8rem; color: var(--text-light);
+        }
+        .customer-card .cc-stats strong { color: var(--text); font-weight: 700; }
+        .customer-card-delete {
+            position: absolute; top: 0.75rem; right: 0.75rem;
+            background: var(--error); color: white; border: none;
+            width: 24px; height: 24px; border-radius: 50%; cursor: pointer;
+            font-size: 1.2rem; line-height: 1; padding: 0; display: flex; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.15s;
+        }
+        .customer-card:hover .customer-card-delete { opacity: 1; }
+        .customer-card-delete:hover { background: #dc2626; }
+        .customer-card { position: relative; }
+
+        /* ── Customer context bar in sidebar ────── */
+        .sidebar-customer {
+            margin: 0 0.75rem 0.5rem; padding: 0.65rem 0.75rem;
+            background: rgba(255,255,255,0.08); border-radius: 10px;
+            cursor: pointer; transition: background 0.15s;
+        }
+        .sidebar-customer:hover { background: rgba(255,255,255,0.14); }
+        .sidebar-customer .sc-name {
+            font-size: 0.82rem; font-weight: 600; color: white;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .sidebar-customer .sc-id {
+            font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-top: 0.15rem;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .sidebar-customer .sc-switch {
+            font-size: 0.7rem; color: var(--primary-light);
+            margin-top: 0.25rem; font-weight: 500;
+        }
+        .sidebar-customer.hidden { display: none; }
     </style>
 </head>
 <body>
+    <!-- Login Screen -->
+    <div class="login-screen" id="login-screen">
+        <div class="login-card">
+            <div class="login-brand">
+                <h1><span class="accent">AI</span> Site Gen</h1>
+                <p>Agency Management Dashboard</p>
+            </div>
+            <div class="login-error" id="login-error">Invalid credentials</div>
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" class="form-control" id="login-username" placeholder="admin" autocomplete="username" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" class="form-control" id="login-password" placeholder="Enter password" autocomplete="current-password" required>
+                </div>
+                <button type="submit" class="btn btn-primary" id="login-btn" style="width:100%; justify-content:center; margin-top:0.5rem;">
+                    Sign In
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div class="toast-container" id="toast-container"></div>
 
@@ -425,12 +589,20 @@
     </div>
 
     <!-- Sidebar -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="app-sidebar">
         <div class="sidebar-brand">
             <span class="accent">AI</span> <span>Site Gen</span>
         </div>
+        <div class="sidebar-customer hidden" id="sidebar-customer" onclick="navigateTo('customers')" title="Switch customer">
+            <div class="sc-name" id="sc-name"></div>
+            <div class="sc-id" id="sc-id"></div>
+            <div class="sc-switch">&#8644; Switch Customer</div>
+        </div>
         <nav class="sidebar-nav">
-            <a class="nav-item active" data-page="dashboard">
+            <a class="nav-item active" data-page="customers">
+                <span class="icon">&#128101;</span> <span class="label">Customers</span>
+            </a>
+            <a class="nav-item" data-page="dashboard">
                 <span class="icon">&#128202;</span> <span class="label">Dashboard</span>
             </a>
             <a class="nav-item" data-page="websites">
@@ -443,14 +615,41 @@
                 <span class="icon">&#9881;&#65039;</span> <span class="label">Settings</span>
             </a>
         </nav>
-        <div class="sidebar-footer">AI Site Gen v1.0</div>
+        <div class="sidebar-footer">
+            <button id="dark-mode-toggle" class="dark-mode-btn" onclick="toggleDarkMode()" title="Toggle dark mode">🌙</button>
+            <a style="color:rgba(255,255,255,0.5);cursor:pointer;font-size:0.75rem;" onclick="handleLogout()">&#128682; Sign Out</a>
+            <div style="margin-top:0.25rem;">AI Site Gen v1.0</div>
+        </div>
     </aside>
 
     <!-- Main Content -->
-    <div class="main">
+    <div class="main" id="app-main">
+
+        <!-- ============ CUSTOMERS PAGE ============ -->
+        <div id="page-customers" class="page">
+            <div class="page-header">
+                <div>
+                    <h2>Customers</h2>
+                    <div class="page-header-sub">Select a customer to manage their websites</div>
+                </div>
+                <button class="btn btn-primary" onclick="openNewCustomerModal()">+ New Customer</button>
+            </div>
+
+            <div class="card" style="margin-bottom: 1.25rem; padding: 1rem 1.25rem;">
+                <div class="filter-bar">
+                    <div class="search-input">
+                        <input type="text" id="customer-search" placeholder="Search customers..." oninput="filterCustomers()">
+                    </div>
+                </div>
+            </div>
+
+            <div class="customer-grid" id="customer-grid">
+                <div class="empty-state"><span class="loading-spinner"></span> Loading customers...</div>
+            </div>
+        </div>
 
         <!-- ============ DASHBOARD PAGE ============ -->
-        <div id="page-dashboard" class="page active">
+        <div id="page-dashboard" class="page">
             <div class="page-header">
                 <div>
                     <h2>Dashboard</h2>
@@ -690,15 +889,15 @@
                         <div class="card-body">
                             <div class="form-group">
                                 <label>API Endpoint</label>
-                                <input type="text" class="form-control" id="s-api-endpoint" readonly style="background:#f8fafc; cursor:text;">
+                                <input type="text" class="form-control form-readonly" id="s-api-endpoint" readonly>
                             </div>
                             <div class="form-group">
                                 <label>Customer ID</label>
-                                <input type="text" class="form-control" id="s-customer-id" readonly style="background:#f8fafc; cursor:text;">
+                                <input type="text" class="form-control form-readonly" id="s-customer-id" readonly>
                             </div>
                             <div class="form-group">
                                 <label>CDN Domain</label>
-                                <input type="text" class="form-control" id="s-cdn-domain" readonly style="background:#f8fafc; cursor:text;">
+                                <input type="text" class="form-control form-readonly" id="s-cdn-domain" readonly>
                             </div>
                             <div class="form-group">
                                 <label>API Health</label>
@@ -726,6 +925,35 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Image Generation Settings -->
+            <div class="card" style="margin-top:1.5rem;">
+                <div class="card-header"><h3>&#127912; Image Generation</h3></div>
+                <div class="card-body">
+                    <p style="color:var(--text-light);font-size:0.85rem;margin-bottom:1rem;">
+                        Choose how images are generated for your websites. DALL-E uses AI to create unique images (requires OpenAI credits).
+                        Stock photos are free via Unsplash.
+                    </p>
+                    <div class="form-group">
+                        <label>Image Mode</label>
+                        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+                            <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;padding:0.6rem 1rem;border:2px solid var(--border);border-radius:8px;transition:0.15s;" class="image-mode-option" data-mode="stock">
+                                <input type="radio" name="imageMode" value="stock"> &#128247; Stock Photos
+                            </label>
+                            <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;padding:0.6rem 1rem;border:2px solid var(--border);border-radius:8px;transition:0.15s;" class="image-mode-option" data-mode="dalle">
+                                <input type="radio" name="imageMode" value="dalle"> &#129302; DALL-E (AI)
+                            </label>
+                            <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;padding:0.6rem 1rem;border:2px solid var(--border);border-radius:8px;transition:0.15s;" class="image-mode-option" data-mode="none">
+                                <input type="radio" name="imageMode" value="none"> &#128683; No Images
+                            </label>
+                        </div>
+                    </div>
+                    <div id="image-mode-info" style="font-size:0.8rem;color:var(--text-light);margin-top:0.5rem;"></div>
+                    <div class="form-actions" style="border:none;padding-top:0.75rem;">
+                        <button type="button" class="btn btn-primary" onclick="saveImageMode()">Save Image Mode</button>
                     </div>
                 </div>
             </div>
@@ -1228,6 +1456,40 @@
         </div>
     </div>
 
+    <!-- New Customer Modal -->
+    <div class="modal-overlay" id="new-customer-modal">
+        <div class="modal" style="max-width:480px;">
+            <div class="modal-header">
+                <h3>New Customer</h3>
+                <button class="modal-close" onclick="closeModal('new-customer-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="new-customer-form" onsubmit="submitNewCustomer(event)">
+                    <div class="form-group">
+                        <label>Company Name *</label>
+                        <input type="text" class="form-control" id="nc-company" required placeholder="Acme Corp">
+                    </div>
+                    <div class="form-group">
+                        <label>Email *</label>
+                        <input type="email" class="form-control" id="nc-email" required placeholder="contact@acme.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Subscription Tier</label>
+                        <select class="form-control" id="nc-tier">
+                            <option value="starter">Starter</option>
+                            <option value="professional">Professional</option>
+                            <option value="enterprise">Enterprise</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn" onclick="closeModal('new-customer-modal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Customer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
     // ============================================
     //  CONFIG & STATE
@@ -1237,21 +1499,49 @@
     var CDN_DOMAIN = '';
     var allWebsites = [];
     var allTemplates = [];
+    var allCustomers = [];
     var customerData = null;
-    var currentPage = 'dashboard';
+    var currentPage = 'customers';
     var currentDetailWebsite = null;
     var selectedTemplateId = null;
     var pendingConfirmCallback = null;
     var pollingInterval = null;
+    var isLoggedIn = false;
+
+    // Admin credentials — change these or move to server-side auth
+    var ADMIN_USER = 'admin';
+    var ADMIN_PASS_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'; // sha256 of 'admin'
 
     // ============================================
     //  INIT
     // ============================================
     async function init() {
+        console.log('[init] Starting initialization');
+        initDarkMode();
         await loadConfig();
         setupNavigation();
         setupColorSync();
-        await loadAllData();
+
+        // Check session
+        if (sessionStorage.getItem('ag_logged_in') === '1') {
+            console.log('[init] User is logged in');
+            isLoggedIn = true;
+            document.getElementById('login-screen').classList.add('hidden');
+            var savedCustomer = sessionStorage.getItem('ag_customer_id');
+            if (savedCustomer) {
+                console.log('[init] Restoring customer session:', savedCustomer);
+                CUSTOMER_ID = savedCustomer;
+                updateSidebarCustomer();
+                await loadAllData();
+                navigateTo('dashboard');
+            } else {
+                console.log('[init] No saved customer, showing customer list');
+                await loadCustomerList();
+                navigateTo('customers');
+            }
+        } else {
+            console.log('[init] User not logged in');
+        }
     }
 
     async function loadConfig() {
@@ -1259,10 +1549,214 @@
             var resp = await fetch('config.json');
             var cfg = await resp.json();
             API_BASE = cfg.apiEndpoint || '';
-            CUSTOMER_ID = cfg.customerId || '';
             CDN_DOMAIN = cfg.cdnDomain || '';
+            // customerId is now set dynamically via customer picker
+            console.log('[loadConfig] Config loaded:', { API_BASE, CDN_DOMAIN });
         } catch (e) {
             console.warn('Config not loaded:', e);
+        }
+    }
+
+    // ============================================
+    //  LOGIN
+    // ============================================
+    async function sha256(message) {
+        var msgBuffer = new TextEncoder().encode(message);
+        var hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        var hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+    }
+
+    async function handleLogin(e) {
+        e.preventDefault();
+        var user = document.getElementById('login-username').value.trim();
+        var pass = document.getElementById('login-password').value;
+        var errEl = document.getElementById('login-error');
+        var btn = document.getElementById('login-btn');
+
+        btn.disabled = true;
+        btn.textContent = 'Signing in...';
+        errEl.classList.remove('show');
+
+        var hash = await sha256(pass);
+        if (user === ADMIN_USER && hash === ADMIN_PASS_HASH) {
+            isLoggedIn = true;
+            sessionStorage.setItem('ag_logged_in', '1');
+            document.getElementById('login-screen').classList.add('hidden');
+            await loadCustomerList();
+            navigateTo('customers');
+        } else {
+            errEl.textContent = 'Invalid username or password';
+            errEl.classList.add('show');
+        }
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+    }
+
+    function toggleDarkMode() {
+        var isDarkMode = document.documentElement.classList.toggle('dark-mode');
+        localStorage.setItem('ag_dark_mode', isDarkMode ? 'true' : 'false');
+    }
+
+    function initDarkMode() {
+        var saved = localStorage.getItem('ag_dark_mode');
+        if (saved === 'true') {
+            document.documentElement.classList.add('dark-mode');
+        }
+    }
+
+    function handleLogout() {
+        sessionStorage.removeItem('ag_logged_in');
+        sessionStorage.removeItem('ag_customer_id');
+        isLoggedIn = false;
+        CUSTOMER_ID = '';
+        allCustomers = [];
+        allWebsites = [];
+        allTemplates = [];
+        customerData = null;
+        document.getElementById('login-screen').classList.remove('hidden');
+        document.getElementById('login-password').value = '';
+        document.getElementById('sidebar-customer').classList.add('hidden');
+    }
+
+    // ============================================
+    //  CUSTOMER LIST & PICKER
+    // ============================================
+    async function loadCustomerList() {
+        if (!API_BASE) return;
+        try {
+            var data = await apiGet('/customers');
+            allCustomers = data.customers || [];
+            renderCustomerGrid();
+        } catch (e) {
+            console.error('Failed to load customers:', e);
+            toast('Failed to load customers', 'error');
+        }
+    }
+
+    function renderCustomerGrid() {
+        var grid = document.getElementById('customer-grid');
+        var search = (document.getElementById('customer-search')?.value || '').toLowerCase();
+        var filtered = allCustomers;
+        if (search) {
+            filtered = allCustomers.filter(function(c) {
+                return (c.companyName || '').toLowerCase().indexOf(search) !== -1 ||
+                       (c.email || '').toLowerCase().indexOf(search) !== -1 ||
+                       (c.customerId || '').toLowerCase().indexOf(search) !== -1;
+            });
+        }
+
+        if (filtered.length === 0) {
+            grid.innerHTML = '<div class="empty-state">' +
+                '<div class="icon">&#128101;</div>' +
+                '<h4>' + (search ? 'No matching customers' : 'No customers yet') + '</h4>' +
+                '<p>' + (search ? 'Try a different search term' : 'Create your first customer to get started') + '</p>' +
+                (!search ? '<button class="btn btn-primary" onclick="openNewCustomerModal()">+ New Customer</button>' : '') +
+                '</div>';
+            return;
+        }
+
+        var html = '';
+        filtered.forEach(function(c) {
+            var initials = (c.companyName || 'C').substring(0, 2).toUpperCase();
+            var websiteCount = c.websitesCount || 0;
+            var tier = capitalize(c.subscriptionTier || 'starter');
+            html += '<div class="customer-card" onclick="selectCustomer(\'' + esc(c.customerId) + '\')">' +
+                '<button class="customer-card-delete" onclick="event.stopPropagation(); confirmDeleteCustomer(\'' + esc(c.customerId) + '\', \'' + esc(c.companyName || c.customerId) + '\');" title="Delete customer">&times;</button>' +
+                '<div class="cc-header">' +
+                    '<div class="cc-avatar">' + esc(initials) + '</div>' +
+                    '<div>' +
+                        '<div class="cc-name">' + esc(c.companyName || c.customerId) + '</div>' +
+                        '<div class="cc-email">' + esc(c.email || '') + '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="cc-stats">' +
+                    '<span>&#127760; <strong>' + websiteCount + '</strong> sites</span>' +
+                    '<span>&#128196; <strong>' + tier + '</strong></span>' +
+                    '<span>&#9889; <strong>' + (c.aiGenerationsUsed || 0) + '</strong>/' + (c.aiGenerationsLimit || 0) + ' gens</span>' +
+                '</div>' +
+            '</div>';
+        });
+        grid.innerHTML = html;
+    }
+
+    function filterCustomers() {
+        renderCustomerGrid();
+    }
+
+    async function selectCustomer(cid) {
+        console.log('[selectCustomer] Selecting customer:', cid);
+        CUSTOMER_ID = cid;
+        sessionStorage.setItem('ag_customer_id', cid);
+        updateSidebarCustomer();
+        var custName = getCustomerName(cid) || cid;
+        console.log('[selectCustomer] Customer name:', custName);
+        toast('Loading ' + custName + '...', 'info');
+        await loadAllData();
+        navigateTo('dashboard');
+    }
+
+    function getCustomerName(cid) {
+        var c = allCustomers.find(function(c) { return c.customerId === cid; });
+        return c ? (c.companyName || cid) : cid;
+    }
+
+    function updateSidebarCustomer() {
+        var el = document.getElementById('sidebar-customer');
+        if (!CUSTOMER_ID) {
+            el.classList.add('hidden');
+            return;
+        }
+        var name = getCustomerName(CUSTOMER_ID);
+        document.getElementById('sc-name').textContent = name;
+        document.getElementById('sc-id').textContent = CUSTOMER_ID;
+        el.classList.remove('hidden');
+    }
+
+    function openNewCustomerModal() {
+        document.getElementById('nc-company').value = '';
+        document.getElementById('nc-email').value = '';
+        document.getElementById('nc-tier').value = 'starter';
+        openModal('new-customer-modal');
+    }
+
+    async function submitNewCustomer(e) {
+        e.preventDefault();
+        var company = document.getElementById('nc-company').value.trim();
+        var email = document.getElementById('nc-email').value.trim();
+        var tier = document.getElementById('nc-tier').value;
+
+        try {
+            var result = await apiPost('/customers', { companyName: company, email: email, subscriptionTier: tier });
+            toast('Customer "' + company + '" created!', 'success');
+            closeModal('new-customer-modal');
+            allCustomers.unshift(result);
+            renderCustomerGrid();
+        } catch (err) {
+            toast('Failed to create customer: ' + err.message, 'error');
+        }
+    }
+
+    function confirmDeleteCustomer(cid, cname) {
+        var websiteCount = allCustomers.find(function(c) { return c.customerId === cid; })?.websitesCount || 0;
+        var message = 'Delete "' + esc(cname) + '" and all ' + websiteCount + ' websites? This cannot be undone.';
+        showConfirm(
+            '⚠️ Delete Customer?',
+            message,
+            async function() {
+                await deleteCustomer(cid);
+            }
+        );
+    }
+
+    async function deleteCustomer(cid) {
+        try {
+            await apiDelete('/customers/' + cid);
+            allCustomers = allCustomers.filter(function(c) { return c.customerId !== cid; });
+            toast('Customer deleted successfully', 'success');
+            renderCustomerGrid();
+        } catch (err) {
+            toast('Failed to delete customer: ' + err.message, 'error');
         }
     }
 
@@ -1321,23 +1815,48 @@
     //  NAVIGATION
     // ============================================
     function navigateTo(page, data) {
+        console.log('[navigateTo] Navigating to:', page, data);
         document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
         document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
 
         currentPage = page;
 
         var pageEl = document.getElementById('page-' + page);
-        if (pageEl) pageEl.classList.add('active');
+        if (pageEl) {
+            pageEl.classList.add('active');
+            console.log('[navigateTo] Page element found and activated:', page);
+        } else {
+            console.warn('[navigateTo] Page element not found:', 'page-' + page);
+        }
 
         var navEl = document.querySelector('.nav-item[data-page="' + page + '"]');
         if (navEl) navEl.classList.add('active');
 
         switch(page) {
-            case 'dashboard': loadDashboard(); break;
-            case 'websites': loadWebsites(); break;
-            case 'website-detail': loadWebsiteDetail(data); break;
-            case 'templates': loadTemplates(); break;
-            case 'settings': loadSettings(); break;
+            case 'customers': 
+                console.log('[navigateTo] Loading customer list');
+                loadCustomerList(); 
+                break;
+            case 'dashboard': 
+                console.log('[navigateTo] Loading dashboard');
+                loadDashboard(); 
+                break;
+            case 'websites': 
+                console.log('[navigateTo] Loading websites');
+                loadWebsites(); 
+                break;
+            case 'website-detail': 
+                console.log('[navigateTo] Loading website detail');
+                loadWebsiteDetail(data); 
+                break;
+            case 'templates': 
+                console.log('[navigateTo] Loading templates');
+                loadTemplates(); 
+                break;
+            case 'settings': 
+                console.log('[navigateTo] Loading settings');
+                loadSettings(); 
+                break;
         }
     }
 
@@ -1392,29 +1911,49 @@
     //  LOAD ALL DATA
     // ============================================
     async function loadAllData() {
-        if (!API_BASE) return;
+        if (!API_BASE || !CUSTOMER_ID) {
+            console.warn('[loadAllData] Missing API_BASE or CUSTOMER_ID', { API_BASE, CUSTOMER_ID });
+            return;
+        }
         try {
+            console.log('[loadAllData] Starting for customer:', CUSTOMER_ID);
             var results = await Promise.all([
-                apiGet('/customers/' + CUSTOMER_ID + '/websites').catch(function() { return { websites: [] }; }),
-                apiGet('/templates').catch(function() { return { templates: [] }; }),
-                apiGet('/customers/' + CUSTOMER_ID).catch(function() { return null; })
+                apiGet('/customers/' + CUSTOMER_ID + '/websites').catch(function(e) { 
+                    console.warn('[loadAllData] websites fetch failed:', e);
+                    return { websites: [] }; 
+                }),
+                apiGet('/templates').catch(function(e) { 
+                    console.warn('[loadAllData] templates fetch failed:', e);
+                    return { templates: [] }; 
+                }),
+                apiGet('/customers/' + CUSTOMER_ID).catch(function(e) { 
+                    console.warn('[loadAllData] customer data fetch failed:', e);
+                    return null; 
+                })
             ]);
             allWebsites = results[0].websites || [];
             allTemplates = results[1].templates || [];
             customerData = results[2];
+            
+            console.log('[loadAllData] Data loaded:', { 
+                websitesCount: allWebsites.length, 
+                templatesCount: allTemplates.length, 
+                hasCustomerData: !!customerData 
+            });
 
             populateTemplateDropdowns();
             loadDashboard();
             startPolling();
         } catch (e) {
-            console.error('Failed to load data:', e);
-            toast('Failed to load data from API', 'error');
+            console.error('[loadAllData] Error:', e);
+            toast('Failed to load data from API: ' + e.message, 'error');
         }
     }
 
     function populateTemplateDropdowns() {
         ['f-template', 'e-template'].forEach(function(id) {
             var sel = document.getElementById(id);
+            if (!sel) return; // Skip if element doesn't exist
             sel.innerHTML = '<option value="">Auto-select by industry</option>';
             allTemplates.forEach(function(t) {
                 sel.innerHTML += '<option value="' + t.templateId + '">' + esc(t.name || t.templateId) + '</option>';
@@ -1425,6 +1964,7 @@
             if (t.industry && industries.indexOf(t.industry) === -1) industries.push(t.industry);
         });
         var indFilter = document.getElementById('template-industry-filter');
+        if (!indFilter) return; // Skip if element doesn't exist
         indFilter.innerHTML = '<option value="">All Industries</option>';
         industries.forEach(function(i) {
             indFilter.innerHTML += '<option value="' + i + '">' + capitalize(i) + '</option>';
@@ -1480,10 +2020,19 @@
     }
 
     function renderDashboard() {
+        console.log('[renderDashboard] Starting render');
+        // Ensure page elements exist
+        if (!document.getElementById('stat-websites')) {
+            console.error('[renderDashboard] Dashboard stat elements not found!');
+            return;
+        }
+        
         var total = allWebsites.length;
         var published = allWebsites.filter(function(w) { return w.status === 'published'; }).length;
         var generating = allWebsites.filter(function(w) { return w.status === 'generating'; }).length;
         var drafts = allWebsites.filter(function(w) { return w.status === 'draft'; }).length;
+
+        console.log('[renderDashboard] Data:', { total, published, generating, drafts });
 
         document.getElementById('stat-websites').textContent = total;
         document.getElementById('stat-websites-sub').textContent =
@@ -1857,6 +2406,12 @@
             document.getElementById('s-usage-websites').textContent = customerData.websitesCount || 0;
             document.getElementById('s-usage-gen').textContent = customerData.aiGenerationsUsed || 0;
             document.getElementById('s-usage-limit').textContent = customerData.aiGenerationsLimit || 50;
+
+            // Load image mode preference
+            var currentMode = customerData.imageMode || 'stock';
+            var radio = document.querySelector('input[name="imageMode"][value="' + currentMode + '"]');
+            if (radio) radio.checked = true;
+            updateImageModeInfo(currentMode);
         }
 
         var healthEl = document.getElementById('s-api-health');
@@ -1865,6 +2420,34 @@
             healthEl.innerHTML = '<span class="badge badge-dot badge-published">Connected</span> <span style="font-size:0.8rem;color:var(--text-light);margin-left:0.5rem;">env: ' + (health.environment || '-') + '</span>';
         } catch (e) {
             healthEl.innerHTML = '<span class="badge badge-dot badge-error">Unreachable</span>';
+        }
+    }
+
+    function updateImageModeInfo(mode) {
+        var infoEl = document.getElementById('image-mode-info');
+        if (!infoEl) return;
+        var msgs = {
+            'stock': 'Free stock photos from Unsplash will be used for hero banners, sections, and content images.',
+            'dalle': 'DALL-E 3 will generate unique AI images tailored to your business. Uses OpenAI credits (~$0.04-0.08 per image).',
+            'none': 'No images will be generated. Websites will use text-only layouts with colored backgrounds.'
+        };
+        infoEl.textContent = msgs[mode] || '';
+    }
+
+    // Listen for radio changes to update info text
+    document.addEventListener('change', function(e) {
+        if (e.target.name === 'imageMode') updateImageModeInfo(e.target.value);
+    });
+
+    async function saveImageMode() {
+        var selected = document.querySelector('input[name="imageMode"]:checked');
+        if (!selected) { toast('Please select an image mode', 'warning'); return; }
+        try {
+            var updated = await apiPut('/customers/' + CUSTOMER_ID, { imageMode: selected.value });
+            customerData = updated;
+            toast('Image mode set to: ' + selected.value, 'success');
+        } catch (e) {
+            toast('Failed to save image mode: ' + e.message, 'error');
         }
     }
 
