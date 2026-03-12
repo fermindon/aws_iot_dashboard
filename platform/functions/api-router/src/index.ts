@@ -363,7 +363,7 @@ async function getWebsite(websiteId: string): Promise<ApiResponse> {
   const result = await ddb.send(
     new QueryCommand({
       TableName: WEBSITES_TABLE,
-      IndexName: 'websiteId-index',
+      IndexName: 'WebsiteIdIndex',
       KeyConditionExpression: 'websiteId = :wid',
       ExpressionAttributeValues: { ':wid': websiteId },
     })
@@ -381,7 +381,7 @@ async function updateWebsite(
   const query = await ddb.send(
     new QueryCommand({
       TableName: WEBSITES_TABLE,
-      IndexName: 'websiteId-index',
+      IndexName: 'WebsiteIdIndex',
       KeyConditionExpression: 'websiteId = :wid',
       ExpressionAttributeValues: { ':wid': websiteId },
     })
@@ -444,7 +444,7 @@ async function deleteWebsite(websiteId: string): Promise<ApiResponse> {
   const query = await ddb.send(
     new QueryCommand({
       TableName: WEBSITES_TABLE,
-      IndexName: 'websiteId-index',
+      IndexName: 'WebsiteIdIndex',
       KeyConditionExpression: 'websiteId = :wid',
       ExpressionAttributeValues: { ':wid': websiteId },
     })
@@ -466,7 +466,7 @@ async function publishWebsite(websiteId: string): Promise<ApiResponse> {
   const query = await ddb.send(
     new QueryCommand({
       TableName: WEBSITES_TABLE,
-      IndexName: 'websiteId-index',
+      IndexName: 'WebsiteIdIndex',
       KeyConditionExpression: 'websiteId = :wid',
       ExpressionAttributeValues: { ':wid': websiteId },
     })
@@ -533,7 +533,7 @@ async function invalidateSiteCache(websiteId: string): Promise<ApiResponse> {
   const query = await ddb.send(
     new QueryCommand({
       TableName: WEBSITES_TABLE,
-      IndexName: 'websiteId-index',
+      IndexName: 'WebsiteIdIndex',
       KeyConditionExpression: 'websiteId = :wid',
       ExpressionAttributeValues: { ':wid': websiteId },
     })

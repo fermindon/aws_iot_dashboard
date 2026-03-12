@@ -12,11 +12,34 @@ param(
 
 Write-Host "Deploying CloudFormation stack: $StackName in $Region"
 
-# Template is large (>51KB), must use S3 for deployment
+# ── Build & upload API Router Lambda code ──────────
+Write-Host "Building API Router Lambda..."
+npm run build:api-router
+if ($LASTEXITCODE -ne 0) { throw "API Router build failed" }
+
+Write-Host "Packaging API Router Lambda zip..."
+$lambdaZipDir = "dist/api-router"
+$lambdaZip = "dist/api-router.zip"
+if (Test-Path $lambdaZip) { Remove-Item $lambdaZip -Force }
+Compress-Archive -Path "$lambdaZipDir/index.js" -DestinationPath $lambdaZip
+
 $artifactBucket = "esp1-static-site-websitebucket-vdg6opbm6kz2"
+Write-Host "Uploading API Router zip to s3://$artifactBucket/lambda/api-router.zip ..."
+aws s3 cp $lambdaZip "s3://$artifactBucket/lambda/api-router.zip" --region $Region
+if ($LASTEXITCODE -ne 0) { throw "Lambda zip upload failed" }
+
+# Template is large (>51KB), must use S3 for deployment
 aws cloudformation deploy --template-file infra/cloudformation.yml --stack-name $StackName --region $Region --capabilities CAPABILITY_NAMED_IAM --s3-bucket $artifactBucket
 
 if ($LASTEXITCODE -ne 0) { throw "CloudFormation deploy failed" }
+
+# ── Update API Router Lambda code (ensure latest) ──
+Write-Host "Updating SaaS API Router Lambda code..."
+$saasLambdaName = aws cloudformation describe-stacks --stack-name $StackName --region $Region --query "Stacks[0].Outputs[?OutputKey=='SaasApiRouterFunctionName'].OutputValue" --output text
+if ($saasLambdaName -and $saasLambdaName -ne "None") {
+  aws lambda update-function-code --function-name $saasLambdaName --s3-bucket $artifactBucket --s3-key lambda/api-router.zip --region $Region | Out-Null
+  Write-Host "API Router Lambda code updated: $saasLambdaName"
+}
 
 Write-Host "Retrieving bucket name..."
 $bucket = aws cloudformation describe-stacks --stack-name $StackName --region $Region --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue" --output text

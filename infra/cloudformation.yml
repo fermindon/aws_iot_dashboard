@@ -283,6 +283,21 @@ Resources:
           Projection:
             ProjectionType: ALL
 
+  # ── SaaS Platform: SQS Queue for website generation ──
+  WebsiteGenerationQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub ${AWS::StackName}-website-generation
+      VisibilityTimeout: 300
+      MessageRetentionPeriod: 86400
+      ReceiveMessageWaitTimeSeconds: 20
+
+  # ── SaaS Platform: S3 Bucket for generated websites ──
+  GeneratedWebsitesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-generated-sites
+
   WebSocketApi:
     Type: AWS::ApiGatewayV2::Api
     Properties:
@@ -344,6 +359,25 @@ Resources:
                 Action:
                   - ses:SendEmail
                   - ses:SendRawEmail
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                  - sqs:GetQueueAttributes
+                Resource: !GetAtt WebsiteGenerationQueue.Arn
+              - Effect: Allow
+                Action:
+                  - cloudfront:CreateInvalidation
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:DeleteObject
+                Resource: !Sub arn:aws:s3:::${GeneratedWebsitesBucket}/*
+              - Effect: Allow
+                Action:
+                  - dynamodb:UpdateItem
                 Resource: '*'
 
   ConnectionHandlerFunction:
@@ -977,6 +1011,9 @@ Resources:
         AllowMethods:
           - GET
           - POST
+          - PUT
+          - DELETE
+          - OPTIONS
         AllowHeaders:
           - '*'
 
@@ -1046,6 +1083,157 @@ Resources:
       ApiId: !Ref QueryHttpApi
       RouteKey: 'POST /inquiries'
       Target: !Sub integrations/${InquiryIntegration}
+
+  # ── SaaS API Router Lambda ────────────────────────
+  SaasApiRouterFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-saas-api-router
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: esp1-static-site-websitebucket-vdg6opbm6kz2
+        S3Key: lambda/api-router.zip
+      Environment:
+        Variables:
+          CUSTOMERS_TABLE: !Ref CustomersTable
+          WEBSITES_TABLE: !Ref WebsitesTable
+          TEMPLATES_TABLE: !Ref TemplatesTable
+          JOBS_TABLE: !Ref JobsTable
+          GENERATED_BUCKET: !Ref GeneratedWebsitesBucket
+          CDN_DOMAIN: !GetAtt MainCloudFrontDistribution.DomainName
+          CDN_DISTRIBUTION_ID: !Ref MainCloudFrontDistribution
+          GENERATION_QUEUE_URL: !Ref WebsiteGenerationQueue
+          ENVIRONMENT: production
+
+  SaasApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt SaasApiRouterFunction.Arn
+      PayloadFormatVersion: '2.0'
+
+  # SaaS API Routes — Health
+  SaasHealthRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'GET /health'
+      Target: !Sub integrations/${SaasApiIntegration}
+
+  # SaaS API Routes — Customers
+  SaasCreateCustomerRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'POST /customers'
+      Target: !Sub integrations/${SaasApiIntegration}
+
+  SaasGetCustomerRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'GET /customers/{customerId}'
+      Target: !Sub integrations/${SaasApiIntegration}
+
+  SaasUpdateCustomerRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'PUT /customers/{customerId}'
+      Target: !Sub integrations/${SaasApiIntegration}
+
+  # SaaS API Routes — Websites
+  SaasCreateWebsiteRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'POST /customers/{customerId}/websites'
+      Target: !Sub integrations/${SaasApiIntegration}
+
+  SaasListWebsitesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'GET /customers/{customerId}/websites'
+      Target: !Sub integrations/${SaasApiIntegration}
+
+  SaasGetWebsiteRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'GET /websites/{websiteId}'
+      Target: !Sub integrations/${SaasApiIntegration}
+
+  SaasUpdateWebsiteRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'PUT /websites/{websiteId}'
+      Target: !Sub integrations/${SaasApiIntegration}
+
+  SaasDeleteWebsiteRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'DELETE /websites/{websiteId}'
+      Target: !Sub integrations/${SaasApiIntegration}
+
+  SaasPublishWebsiteRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'POST /websites/{websiteId}/publish'
+      Target: !Sub integrations/${SaasApiIntegration}
+
+  SaasInvalidateCacheRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'POST /websites/{websiteId}/invalidate-cache'
+      Target: !Sub integrations/${SaasApiIntegration}
+
+  # SaaS API Routes — Templates
+  SaasListTemplatesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'GET /templates'
+      Target: !Sub integrations/${SaasApiIntegration}
+
+  SaasGetTemplateRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'GET /templates/{templateId}'
+      Target: !Sub integrations/${SaasApiIntegration}
+
+  # SaaS API Routes — AI Generation
+  SaasTriggerGenerationRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'POST /ai/generate'
+      Target: !Sub integrations/${SaasApiIntegration}
+
+  SaasGetJobRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QueryHttpApi
+      RouteKey: 'GET /ai/jobs/{jobId}'
+      Target: !Sub integrations/${SaasApiIntegration}
+
+  SaasApiLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref SaasApiRouterFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${QueryHttpApi}/*/*
 
   # ── Payment Portal Lambda & Routes ─────────────────
   PaymentFunction:
@@ -1434,3 +1622,27 @@ Outputs:
   QueryApiEndpoint:
     Description: HTTP API endpoint for querying historical messages
     Value: !Sub https://${QueryHttpApi}.execute-api.${AWS::Region}.amazonaws.com/api
+
+  SaasApiRouterFunctionName:
+    Description: SaaS API Router Lambda function name
+    Value: !Ref SaasApiRouterFunction
+
+  WebsiteGenerationQueueUrl:
+    Description: SQS queue URL for website generation jobs
+    Value: !Ref WebsiteGenerationQueue
+
+  GeneratedWebsitesBucketName:
+    Description: S3 bucket for generated website content
+    Value: !Ref GeneratedWebsitesBucket
+
+  WebsitesTableName:
+    Description: DynamoDB table for websites
+    Value: !Ref WebsitesTable
+
+  TemplatesTableName:
+    Description: DynamoDB table for templates
+    Value: !Ref TemplatesTable
+
+  JobsTableName:
+    Description: DynamoDB table for generation jobs
+    Value: !Ref JobsTable
