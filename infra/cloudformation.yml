@@ -57,6 +57,12 @@ Resources:
     Properties:
       DistributionConfig:
         Enabled: true
+        Aliases:
+          - angelorum.tech
+        ViewerCertificate:
+          AcmCertificateArn: arn:aws:acm:us-east-1:398069592855:certificate/e819e899-c5e3-4e7a-ab9b-6f8d1f80fa7e
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
         Origins:
           - Id: AgencyS3Origin
             DomainName: !GetAtt WebsiteBucket.RegionalDomainName
