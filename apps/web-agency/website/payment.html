@@ -91,8 +91,9 @@
             <p class="step-sub">Choose the website package that fits your business needs.</p>
 
             <div class="package-cards">
-              <label class="package-card" data-package="hosting">
-                <input type="radio" name="package" value="hosting" />
+              <label class="package-card popular" data-package="hosting">
+                <div class="popular-tag">Best Value</div>
+                <input type="radio" name="package" value="hosting" checked />
                 <div class="package-inner">
                   <div class="package-top">
                     <span class="package-name">Managed Hosting</span>
@@ -111,9 +112,8 @@
                 </div>
               </label>
 
-              <label class="package-card popular" data-package="premium" style="order: -1;">
-                <div class="popular-tag">Best Value</div>
-                <input type="radio" name="package" value="premium" checked />
+              <label class="package-card" data-package="premium" style="order: -1;">
+                <input type="radio" name="package" value="premium" />
                 <div class="package-inner">
                   <div class="package-top">
                     <span class="package-name">Premium Website</span>
@@ -302,8 +302,8 @@
 
             <div class="summary-package" id="summary-package">
               <div class="summary-row">
-                <span class="summary-label" id="summary-plan-name">Premium Website</span>
-                <span class="summary-value" id="summary-plan-price">$2,400.00</span>
+                <span class="summary-label" id="summary-plan-name">Managed Hosting</span>
+                <span class="summary-value" id="summary-plan-price">$60.00</span>
               </div>
             </div>
 
@@ -327,7 +327,7 @@
 
             <div class="summary-row total-row">
               <span class="summary-label">Total Due Today</span>
-              <span class="summary-value total-value" id="summary-total">$2,400.00</span>
+              <span class="summary-value total-value" id="summary-total">$60.00</span>
             </div>
 
             <div class="summary-recurring" id="summary-recurring" style="display:none">

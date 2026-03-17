@@ -144,12 +144,18 @@
     const planName = document.getElementById("summary-plan-name");
     const planPrice = document.getElementById("summary-plan-price");
     if (planName) planName.textContent = pkg.name;
-    if (planPrice) planPrice.textContent = formatCurrency(pkg.price);
+    if (planPrice) {
+      if (pkg.type === "monthly") {
+        planPrice.textContent = formatCurrency(pkg.price) + "/mo";
+      } else {
+        planPrice.textContent = formatCurrency(pkg.price);
+      }
+    }
 
     // Addons
     const addonsEl = document.getElementById("summary-addons");
-    let oneTimeTotal = pkg.price;
-    let monthlyTotal = pkg.monthlyPrice || 0;
+    let oneTimeTotal = pkg.type === "monthly" ? 0 : pkg.price;
+    let monthlyTotal = pkg.type === "monthly" ? pkg.price : (pkg.monthlyPrice || 0);
 
     if (addonsEl) {
       addonsEl.innerHTML = "";
@@ -197,10 +203,11 @@
     const taxEl = document.getElementById("summary-tax");
     if (taxEl) taxEl.textContent = formatCurrency(tax);
 
-    // Total
-    const total = subtotal + tax;
+    // Total - for monthly plans, the total due today is the first month charge
+    let totalAmount = pkg.type === "monthly" ? monthlyTotal : oneTimeTotal - discountAmount;
+    totalAmount = totalAmount + tax;
     const totalEl = document.getElementById("summary-total");
-    if (totalEl) totalEl.textContent = formatCurrency(total);
+    if (totalEl) totalEl.textContent = formatCurrency(totalAmount);
 
     // Monthly recurring
     const recurringSection = document.getElementById("summary-recurring");
