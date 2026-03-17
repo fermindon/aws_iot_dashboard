@@ -243,6 +243,7 @@
 /* ---------- Add-ons ---------- */
 .addon-section {
   margin-bottom: 2rem;
+  display: none;
 }
 .addon-section h3 {
   font-size: 1.1rem;
@@ -1129,4 +1130,41 @@
   .addon-price {
     text-align: center;
   }
+}
+
+/* ---------- Stripe Review Box ---------- */
+.stripe-review-box {
+  background: var(--card-bg, #1a1a2e);
+  border: 1px solid var(--border, rgba(255,255,255,.08));
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.review-details {
+  margin: 1.25rem 0;
+}
+
+.review-row {
+  display: flex;
+  justify-content: space-between;
+  padding: .6rem 0;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  font-size: .95rem;
+}
+.review-row:last-child { border-bottom: none; }
+
+.review-label {
+  color: var(--muted, #999);
+}
+.review-value {
+  font-weight: 600;
+  color: var(--heading, #fff);
+}
+
+.stripe-note {
+  margin-top: 1rem;
+  font-size: .82rem;
+  color: var(--muted, #999);
+  line-height: 1.5;
 }
