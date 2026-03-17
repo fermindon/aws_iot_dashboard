@@ -17,6 +17,15 @@
     mobileToggle.addEventListener("click", () => navLinks.classList.toggle("open"));
   }
 
+  // ── Configuration ───────────────────────────────────
+  let ordersEndpoint = null;
+
+  // Load config
+  fetch("./config.json")
+    .then((r) => r.ok ? r.json() : Promise.reject())
+    .then((cfg) => { if (cfg.ordersEndpoint) ordersEndpoint = cfg.ordersEndpoint; })
+    .catch(() => {});
+
   // ── State ──────────────────────────────────────────
   let currentUser = null;
   const loginSection = document.getElementById("login-section");
@@ -121,8 +130,15 @@
 
   const lookupBtn = document.getElementById("lookup-btn");
   if (lookupBtn) {
-    lookupBtn.addEventListener("click", () => {
+    lookupBtn.addEventListener("click", async () => {
       const orderId = document.getElementById("lookup-order-id").value.trim().toUpperCase();
+
+      // Try API first if available
+      if (ordersEndpoint) {
+        // We can't look up by order ID directly via API easily,
+        // so fall through to localStorage lookup
+      }
+
       const orders = JSON.parse(localStorage.getItem("angelorum_orders") || "[]");
       const order = orders.find((o) => o.orderId === orderId);
       if (order) {
@@ -162,7 +178,7 @@
   });
 
   // ── Dashboard Population ───────────────────────────
-  function populateDashboard() {
+  async function populateDashboard() {
     if (!currentUser) return;
 
     // User info
@@ -181,11 +197,38 @@
     if (sPhone) sPhone.value = currentUser.phone || "";
     if (sBusiness) sBusiness.value = currentUser.businessName || "";
 
-    // Load orders
-    const allOrders = JSON.parse(localStorage.getItem("angelorum_orders") || "[]");
-    const userOrders = allOrders.filter(
-      (o) => o.customer && o.customer.email === currentUser.email
-    );
+    // Load orders from API (with localStorage fallback)
+    let userOrders = [];
+    if (ordersEndpoint) {
+      try {
+        const res = await fetch(ordersEndpoint + "?email=" + encodeURIComponent(currentUser.email));
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.data && data.data.orders) {
+            userOrders = data.data.orders.map((o) => ({
+              orderId: o.id || "",
+              packageName: planNameMap(o.plan),
+              total: (o.amount || 0) / 100, // cents to dollars
+              status: o.status || "pending",
+              createdAt: o.createdAt || "",
+              plan: o.plan || "",
+              email: o.email || "",
+              businessName: o.businessName || "",
+            }));
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to fetch orders from API, falling back to localStorage:", err);
+      }
+    }
+
+    // Fallback to localStorage if API returned nothing
+    if (userOrders.length === 0) {
+      const allOrders = JSON.parse(localStorage.getItem("angelorum_orders") || "[]");
+      userOrders = allOrders.filter(
+        (o) => o.customer && o.customer.email === currentUser.email
+      );
+    }
 
     // Stats
     const statOrders = document.getElementById("stat-orders");
@@ -194,15 +237,15 @@
     const statSubs = document.getElementById("stat-subscriptions");
 
     const totalSpent = userOrders.reduce((sum, o) => sum + (o.total || 0), 0);
-    const activeProjects = userOrders.filter((o) => o.status === "confirmed" || o.status === "in-progress").length;
-    const activeSubs = userOrders.reduce((count, o) => {
-      return count + (o.addons || []).filter((a) => a.type === "monthly").length;
-    }, 0);
+    const activeProjects = userOrders.filter((o) =>
+      o.status === "completed" || o.status === "confirmed" || o.status === "in-progress"
+    ).length;
+    const pendingOrders = userOrders.filter((o) => o.status === "pending").length;
 
     if (statOrders) statOrders.textContent = userOrders.length;
     if (statActive) statActive.textContent = activeProjects;
     if (statSpent) statSpent.textContent = "$" + totalSpent.toLocaleString("en-US", { minimumFractionDigits: 0 });
-    if (statSubs) statSubs.textContent = activeSubs;
+    if (statSubs) statSubs.textContent = pendingOrders;
 
     // Orders table
     const tbody = document.getElementById("orders-tbody");
@@ -342,6 +385,16 @@
     var div = document.createElement("div");
     div.appendChild(document.createTextNode(str || ""));
     return div.innerHTML;
+  }
+
+  function planNameMap(plan) {
+    const names = {
+      hosting: "Managed Hosting",
+      premium: "Premium Website",
+      professional: "Professional Website",
+      integration: "Platform Integration",
+    };
+    return names[plan] || capitalize(plan || "Unknown");
   }
 
   // ── Initialize ─────────────────────────────────────

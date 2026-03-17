@@ -1,4 +1,5 @@
 ﻿{
     "paymentApiEndpoint": "https://9yvmc32yo3.execute-api.us-east-1.amazonaws.com/api/agency/checkout/session",
-    "apiEndpoint": "https://9yvmc32yo3.execute-api.us-east-1.amazonaws.com/api/agency/inquiries"
+    "apiEndpoint": "https://9yvmc32yo3.execute-api.us-east-1.amazonaws.com/api/agency/inquiries",
+    "ordersEndpoint": "https://9yvmc32yo3.execute-api.us-east-1.amazonaws.com/api/agency/orders"
 }
