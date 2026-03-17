@@ -1,22 +1,24 @@
 /**
  * Angelorum Solutions — Payment Portal JavaScript
- * Handles checkout flow, Stripe stub, order summary, and auto-confirmation.
+ * Handles checkout flow with Stripe Checkout Sessions (redirect).
  * 
- * STRIPE STUB: All Stripe interactions are simulated. Replace the stripe* functions
- * with real Stripe.js integration when you have a Stripe account.
+ * Flow: Select Package → Enter Details → Review & Redirect to Stripe → Confirmation
  */
 
 (function () {
   "use strict";
 
   // ── Configuration ──────────────────────────────────
-  let apiEndpoint = null;
-  const TAX_RATE = 0; // Set to 0; change when tax calculation is needed
+  let checkoutApiEndpoint = null;
+  const STRIPE_PK = "pk_test_51TAfgDCKtiN3XTPMzaNtGeV7w6naR4p84uFiJuYZrZA5OfL5RG3sYR3zuns17dOadpmGK3sUqordSTI6HCJ7V3zL00a8Ba3kEB";
+  const TAX_RATE = 0;
+
+  // Initialize Stripe
+  const stripe = window.Stripe ? window.Stripe(STRIPE_PK) : null;
 
   const PACKAGES = {
-    starter:  { name: "Starter Package",  price: 900,  type: "one-time" },
-    growth:   { name: "Growth Package",   price: 1900, type: "one-time" },
-    premium:  { name: "Premium Package",  price: 3200, type: "one-time" },
+    hosting:      { name: "Managed Hosting",       price: 60,   type: "monthly", plan: "hosting" },
+    premium:      { name: "Premium Website",        price: 2400, type: "one-time-plus-monthly", monthlyPrice: 40, plan: "premium" },
   };
 
   const ADDONS = {
@@ -33,7 +35,7 @@
 
   // ── State ──────────────────────────────────────────
   let currentStep = 1;
-  let selectedPackage = "growth";
+  let selectedPackage = "professional";
   let selectedAddons = new Set();
   let appliedPromo = null;
   let customerData = {};
@@ -49,7 +51,7 @@
   // Load config
   fetch("./config.json")
     .then((r) => r.ok ? r.json() : Promise.reject())
-    .then((cfg) => { if (cfg.paymentApiEndpoint) apiEndpoint = cfg.paymentApiEndpoint; })
+    .then((cfg) => { if (cfg.paymentApiEndpoint) checkoutApiEndpoint = cfg.paymentApiEndpoint; })
     .catch(() => {});
 
   // ── Mobile Menu ────────────────────────────────────
@@ -147,7 +149,7 @@
     // Addons
     const addonsEl = document.getElementById("summary-addons");
     let oneTimeTotal = pkg.price;
-    let monthlyTotal = 0;
+    let monthlyTotal = pkg.monthlyPrice || 0;
 
     if (addonsEl) {
       addonsEl.innerHTML = "";
@@ -211,51 +213,6 @@
     }
   }
 
-  // ── Payment Method Toggle ──────────────────────────
-  document.querySelectorAll('input[name="paymentMethod"]').forEach((radio) => {
-    radio.addEventListener("change", (e) => {
-      const cardForm = document.getElementById("card-form");
-      const achForm = document.getElementById("ach-form");
-      if (e.target.value === "card") {
-        if (cardForm) cardForm.style.display = "";
-        if (achForm) achForm.style.display = "none";
-      } else {
-        if (cardForm) cardForm.style.display = "none";
-        if (achForm) achForm.style.display = "";
-      }
-    });
-  });
-
-  // ── Card Number Formatting ─────────────────────────
-  const cardInput = document.getElementById("card-number");
-  if (cardInput) {
-    cardInput.addEventListener("input", (e) => {
-      let val = e.target.value.replace(/\D/g, "").substring(0, 16);
-      val = val.replace(/(.{4})/g, "$1 ").trim();
-      e.target.value = val;
-    });
-  }
-
-  // ── Expiry Formatting ──────────────────────────────
-  const expiryInput = document.getElementById("card-expiry");
-  if (expiryInput) {
-    expiryInput.addEventListener("input", (e) => {
-      let val = e.target.value.replace(/\D/g, "").substring(0, 4);
-      if (val.length >= 3) {
-        val = val.substring(0, 2) + " / " + val.substring(2);
-      }
-      e.target.value = val;
-    });
-  }
-
-  // ── CVC Formatting ─────────────────────────────────
-  const cvcInput = document.getElementById("card-cvc");
-  if (cvcInput) {
-    cvcInput.addEventListener("input", (e) => {
-      e.target.value = e.target.value.replace(/\D/g, "").substring(0, 4);
-    });
-  }
-
   // ── Step 1 → Step 2 ───────────────────────────────
   const toStep2 = document.getElementById("to-step-2");
   if (toStep2) {
@@ -306,6 +263,9 @@
         projectNotes: form.querySelector('[name="projectNotes"]').value.trim(),
       };
 
+      // Populate review details in Step 3
+      populateReview();
+
       goToStep(3);
     });
   }
@@ -317,125 +277,56 @@
   if (backTo2) backTo2.addEventListener("click", () => goToStep(2));
 
   // ══════════════════════════════════════════════════════
-  // STRIPE STUB — Replace with real Stripe integration
+  // STRIPE CHECKOUT SESSION — Real Integration
   // ══════════════════════════════════════════════════════
 
   /**
-   * STUB: Simulates creating a Stripe PaymentIntent on the server.
-   * In production, this would call your API which calls Stripe's API.
-   * 
-   * To integrate real Stripe:
-   * 1. Include <script src="https://js.stripe.com/v3/"></script>
-   * 2. Initialize: const stripe = Stripe('pk_live_your_key');
-   * 3. Create a PaymentIntent via your backend API
-   * 4. Use stripe.confirmCardPayment(clientSecret, { payment_method: { card: elements } })
+   * Populates the review details box before Stripe redirect.
    */
-  async function stripeCreatePaymentIntent(orderData) {
-    console.log("[STRIPE STUB] Creating PaymentIntent for:", orderData);
-    
-    // Simulate API call delay
-    await sleep(800);
+  function populateReview() {
+    const reviewEl = document.getElementById("review-details");
+    if (!reviewEl) return;
 
-    // In production, POST to your API:
-    // const res = await fetch(apiEndpoint + '/create-payment-intent', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(orderData)
-    // });
-    // return await res.json();
+    const pkg = PACKAGES[selectedPackage];
+    const totals = calculateTotal();
 
-    return {
-      clientSecret: "pi_stub_" + generateId() + "_secret_" + generateId(),
-      paymentIntentId: "pi_stub_" + generateId(),
-    };
-  }
+    let html = `
+      <div class="review-row"><span class="review-label">Package</span><span class="review-value">${pkg.name}</span></div>
+      <div class="review-row"><span class="review-label">Price</span><span class="review-value">${formatCurrency(pkg.price)}${pkg.type === "monthly" ? "/mo" : ""}</span></div>
+    `;
 
-  /**
-   * STUB: Simulates confirming a card payment with Stripe.
-   * Returns a simulated successful payment result.
-   */
-  async function stripeConfirmCardPayment(clientSecret, cardDetails) {
-    console.log("[STRIPE STUB] Confirming card payment...");
-    console.log("[STRIPE STUB] Client secret:", clientSecret);
-    console.log("[STRIPE STUB] Card (last 4):", cardDetails.cardNumber.slice(-4));
-    
-    // Simulate processing delay
-    await sleep(1500);
+    selectedAddons.forEach((key) => {
+      const addon = ADDONS[key];
+      if (addon) {
+        html += `<div class="review-row"><span class="review-label">${addon.name}</span><span class="review-value">${formatCurrency(addon.price)}${addon.type === "monthly" ? "/mo" : ""}</span></div>`;
+      }
+    });
 
-    // Simulate validation
-    const cardNum = cardDetails.cardNumber.replace(/\s/g, "");
-    if (cardNum.length < 13) {
-      return { error: { message: "Your card number is invalid." } };
-    }
-    if (cardDetails.expiry.replace(/\D/g, "").length < 4) {
-      return { error: { message: "Your card's expiration date is invalid." } };
-    }
-    if (cardDetails.cvc.length < 3) {
-      return { error: { message: "Your card's security code is invalid." } };
+    if (totals.discount > 0) {
+      html += `<div class="review-row"><span class="review-label">Discount (${appliedPromo.code})</span><span class="review-value" style="color:var(--success)">-${formatCurrency(totals.discount)}</span></div>`;
     }
 
-    // Simulate declined card for testing
-    if (cardNum === "4000000000000002") {
-      return { error: { message: "Your card was declined. Please try a different card." } };
+    html += `
+      <div class="review-row" style="border-top:2px solid rgba(255,255,255,.12);padding-top:.8rem;margin-top:.4rem">
+        <span class="review-label" style="font-weight:600">Total Due Today</span>
+        <span class="review-value" style="font-size:1.15rem;color:var(--accent)">${formatCurrency(totals.total)}</span>
+      </div>
+    `;
+
+    if (totals.monthly > 0) {
+      html += `<div class="review-row"><span class="review-label">Monthly Recurring</span><span class="review-value">${formatCurrency(totals.monthly)}/mo</span></div>`;
     }
 
-    // Simulated success
-    return {
-      paymentIntent: {
-        id: "pi_stub_" + generateId(),
-        status: "succeeded",
-        amount: calculateTotal().total * 100,
-        currency: "usd",
-        created: Math.floor(Date.now() / 1000),
-        receipt_url: "#",
-      },
-    };
-  }
+    html += `
+      <div class="review-row"><span class="review-label">Business</span><span class="review-value">${escapeHtml(customerData.businessName)}</span></div>
+      <div class="review-row"><span class="review-label">Email</span><span class="review-value">${escapeHtml(customerData.email)}</span></div>
+    `;
 
-  /**
-   * STUB: Simulates confirming an ACH payment with Stripe.
-   */
-  async function stripeConfirmACHPayment(clientSecret, achDetails) {
-    console.log("[STRIPE STUB] Confirming ACH payment...");
-    
-    await sleep(2000);
-
-    if (!achDetails.routingNumber || achDetails.routingNumber.length < 9) {
-      return { error: { message: "Invalid routing number." } };
-    }
-    if (!achDetails.accountNumber || achDetails.accountNumber.length < 6) {
-      return { error: { message: "Invalid account number." } };
-    }
-
-    return {
-      paymentIntent: {
-        id: "pi_ach_stub_" + generateId(),
-        status: "succeeded",
-        amount: calculateTotal().total * 100,
-        currency: "usd",
-        created: Math.floor(Date.now() / 1000),
-      },
-    };
-  }
-
-  /**
-   * STUB: Creates a Stripe subscription for recurring add-ons.
-   */
-  async function stripeCreateSubscription(customerId, priceIds) {
-    console.log("[STRIPE STUB] Creating subscription for customer:", customerId);
-    console.log("[STRIPE STUB] Price IDs:", priceIds);
-    
-    await sleep(500);
-
-    return {
-      subscriptionId: "sub_stub_" + generateId(),
-      status: "active",
-      current_period_end: Math.floor(Date.now() / 1000) + 30 * 24 * 3600,
-    };
+    reviewEl.innerHTML = html;
   }
 
   // ══════════════════════════════════════════════════════
-  // PAYMENT SUBMISSION
+  // PAYMENT SUBMISSION — Stripe Checkout Redirect
   // ══════════════════════════════════════════════════════
 
   const submitBtn = document.getElementById("submit-payment");
@@ -445,192 +336,65 @@
     submitBtn.addEventListener("click", async () => {
       if (paymentError) paymentError.textContent = "";
 
-      // Validate billing address
-      const address = document.getElementById("billing-address").value.trim();
-      const city = document.getElementById("billing-city").value.trim();
-      const state = document.getElementById("billing-state").value.trim();
-      const zip = document.getElementById("billing-zip").value.trim();
-
-      if (!address || !city || !state || !zip) {
-        if (paymentError) paymentError.textContent = "Please fill in your complete billing address.";
+      if (!stripe) {
+        if (paymentError) paymentError.textContent = "Payment system not loaded. Please refresh the page.";
         return;
       }
 
-      const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
-
-      // Validate payment details
-      if (paymentMethod === "card") {
-        const cardName = document.getElementById("card-name").value.trim();
-        const cardNumber = document.getElementById("card-number").value.trim();
-        const expiry = document.getElementById("card-expiry").value.trim();
-        const cvc = document.getElementById("card-cvc").value.trim();
-
-        if (!cardName || !cardNumber || !expiry || !cvc) {
-          if (paymentError) paymentError.textContent = "Please fill in all card details.";
-          return;
-        }
-      } else {
-        const achName = document.getElementById("ach-name").value.trim();
-        const achRouting = document.getElementById("ach-routing").value.trim();
-        const achAccount = document.getElementById("ach-account").value.trim();
-
-        if (!achName || !achRouting || !achAccount) {
-          if (paymentError) paymentError.textContent = "Please fill in all bank account details.";
-          return;
-        }
+      if (!checkoutApiEndpoint) {
+        if (paymentError) paymentError.textContent = "Payment not configured. Please try again later.";
+        return;
       }
 
       // Disable button, show processing
       submitBtn.disabled = true;
-      submitBtn.innerHTML = '<span class="processing-spinner" style="width:20px;height:20px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px"></span> Processing...';
+      submitBtn.innerHTML = '<span class="processing-spinner" style="width:20px;height:20px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px"></span> Redirecting to Stripe...';
 
       try {
-        // Calculate totals
-        const totals = calculateTotal();
-        orderId = "ORD-" + generateId().toUpperCase().substring(0, 8);
+        const pkg = PACKAGES[selectedPackage];
 
-        // Step 1: Create PaymentIntent (Stripe Stub)
-        const intentResult = await stripeCreatePaymentIntent({
-          orderId,
-          amount: totals.total,
-          currency: "usd",
-          customer: customerData,
-          package: selectedPackage,
-          addons: Array.from(selectedAddons),
-          promoCode: appliedPromo ? appliedPromo.code : null,
+        // Call our API to create a Stripe Checkout Session
+        const res = await fetch(checkoutApiEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            plan: pkg.plan,
+            email: customerData.email,
+            businessName: customerData.businessName,
+          }),
         });
 
-        // Step 2: Confirm payment (Stripe Stub)
-        let result;
-        if (paymentMethod === "card") {
-          result = await stripeConfirmCardPayment(intentResult.clientSecret, {
-            cardNumber: document.getElementById("card-number").value,
-            expiry: document.getElementById("card-expiry").value,
-            cvc: document.getElementById("card-cvc").value,
-            name: document.getElementById("card-name").value,
-          });
-        } else {
-          result = await stripeConfirmACHPayment(intentResult.clientSecret, {
-            accountName: document.getElementById("ach-name").value,
-            routingNumber: document.getElementById("ach-routing").value,
-            accountNumber: document.getElementById("ach-account").value,
-            accountType: document.getElementById("ach-type").value,
-          });
+        const json = await res.json();
+
+        if (!json.success || !json.data?.sessionId) {
+          throw new Error(json.error || "Failed to create checkout session");
         }
 
-        if (result.error) {
-          if (paymentError) paymentError.textContent = result.error.message;
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = '🔒 Pay Now →';
-          return;
-        }
+        // Save customer info locally before redirect
+        try {
+          localStorage.setItem("angelorum_checkout", JSON.stringify({
+            package: selectedPackage,
+            customer: customerData,
+            timestamp: new Date().toISOString(),
+          }));
+        } catch (e) { /* ignore */ }
 
-        // Step 3: Create subscriptions for monthly add-ons (Stripe Stub)
-        const monthlyAddons = Array.from(selectedAddons).filter((k) => ADDONS[k] && ADDONS[k].type === "monthly");
-        if (monthlyAddons.length > 0) {
-          await stripeCreateSubscription("cust_stub_" + generateId(), monthlyAddons);
-        }
-
-        // Show processing step
-        goToStep(4);
-
-        // Step 4: Save order to backend
-        await saveOrderToBackend({
-          orderId,
-          paymentIntentId: result.paymentIntent.id,
-          customer: customerData,
-          package: selectedPackage,
-          packageName: PACKAGES[selectedPackage].name,
-          packagePrice: PACKAGES[selectedPackage].price,
-          addons: Array.from(selectedAddons).map((k) => ({
-            key: k,
-            name: ADDONS[k].name,
-            price: ADDONS[k].price,
-            type: ADDONS[k].type,
-          })),
-          promoCode: appliedPromo ? appliedPromo.code : null,
-          discount: totals.discount,
-          tax: totals.tax,
-          total: totals.total,
-          monthlyRecurring: totals.monthly,
-          billingAddress: { address, city, state, zip },
-          paymentMethod,
-          status: "confirmed",
-          createdAt: new Date().toISOString(),
+        // Redirect to Stripe Checkout
+        const { error } = await stripe.redirectToCheckout({
+          sessionId: json.data.sessionId,
         });
 
-        // Step 5: Send confirmation email (backend handles this)
-        await sendConfirmationEmail(orderId, customerData.email);
-
-        // Step 6: Redirect to confirmation page
-        await sleep(1000);
-        const params = new URLSearchParams({
-          orderId,
-          package: selectedPackage,
-          total: totals.total.toFixed(2),
-          email: customerData.email,
-          name: customerData.fullName,
-          business: customerData.businessName,
-        });
-        if (totals.monthly > 0) params.set("monthly", totals.monthly.toFixed(2));
-
-        window.location.href = "confirmation.html?" + params.toString();
+        if (error) {
+          throw new Error(error.message);
+        }
 
       } catch (err) {
-        console.error("Payment error:", err);
-        if (paymentError) paymentError.textContent = "An unexpected error occurred. Please try again.";
+        console.error("Checkout error:", err);
+        if (paymentError) paymentError.textContent = err.message || "An unexpected error occurred. Please try again.";
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '🔒 Pay Now →';
-        goToStep(3);
+        submitBtn.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> Proceed to Secure Payment &rarr;';
       }
     });
-  }
-
-  // ── Save Order to Backend ──────────────────────────
-  async function saveOrderToBackend(orderData) {
-    console.log("[ORDER] Saving order:", orderData);
-
-    // Store locally as fallback
-    try {
-      const orders = JSON.parse(localStorage.getItem("angelorum_orders") || "[]");
-      orders.push(orderData);
-      localStorage.setItem("angelorum_orders", JSON.stringify(orders));
-    } catch (e) {
-      console.warn("Could not save to localStorage:", e);
-    }
-
-    // Send to API if configured
-    if (apiEndpoint) {
-      try {
-        await fetch(apiEndpoint + "/orders", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(orderData),
-        });
-      } catch (e) {
-        console.warn("API save failed, order saved locally:", e);
-      }
-    }
-
-    return orderData;
-  }
-
-  // ── Send Confirmation Email ────────────────────────
-  async function sendConfirmationEmail(orderId, email) {
-    console.log("[EMAIL STUB] Sending confirmation to:", email, "for order:", orderId);
-
-    // In production, your backend Lambda handles this via SES
-    if (apiEndpoint) {
-      try {
-        await fetch(apiEndpoint + "/send-confirmation", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId, email }),
-        });
-      } catch (e) {
-        console.warn("Confirmation email API call failed:", e);
-      }
-    }
   }
 
   // ── Calculate Totals ───────────────────────────────
@@ -638,6 +402,11 @@
     const pkg = PACKAGES[selectedPackage];
     let oneTime = pkg ? pkg.price : 0;
     let monthly = 0;
+
+    if (pkg && pkg.type === "monthly") {
+      monthly += pkg.price;
+      oneTime = 0;
+    }
 
     selectedAddons.forEach((key) => {
       const addon = ADDONS[key];
@@ -667,6 +436,12 @@
     return "$" + amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+  }
+
   function generateId() {
     return Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
   }
@@ -676,7 +451,7 @@
   }
 
   // ── URL Param Pre-selection ────────────────────────
-  // Allow linking from pricing section: payment.html?plan=starter
+  // Allow linking from pricing section: payment.html?plan=hosting
   const urlParams = new URLSearchParams(window.location.search);
   const planParam = urlParams.get("plan");
   if (planParam && PACKAGES[planParam]) {
