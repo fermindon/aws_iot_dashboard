@@ -225,11 +225,11 @@
             const statusClass = (o.status || "confirmed").replace(/\s/g, "-");
             return `
               <tr>
-                <td><strong>${o.orderId}</strong></td>
-                <td>${o.packageName || o.package}</td>
-                <td>${date}</td>
+                <td><strong>${escapeHtml(o.orderId)}</strong></td>
+                <td>${escapeHtml(o.packageName || o.package)}</td>
+                <td>${escapeHtml(date)}</td>
                 <td>$${(o.total || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
-                <td><span class="status-badge ${statusClass}">${capitalize(o.status || "confirmed")}</span></td>
+                <td><span class="status-badge ${escapeHtml(statusClass)}">${escapeHtml(capitalize(o.status || "confirmed"))}</span></td>
               </tr>
             `;
           })
@@ -257,8 +257,8 @@
             return `
               <div class="invoice-card">
                 <div class="invoice-info">
-                  <span class="invoice-id">INV-${(o.orderId || "").replace("ORD-", "")}</span>
-                  <span class="invoice-date">${date} &bull; ${o.packageName || o.package}</span>
+                  <span class="invoice-id">INV-${escapeHtml((o.orderId || "").replace("ORD-", ""))}</span>
+                  <span class="invoice-date">${escapeHtml(date)} &bull; ${escapeHtml(o.packageName || o.package)}</span>
                 </div>
                 <div class="invoice-actions">
                   <span class="invoice-amount">$${(o.total || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
@@ -336,6 +336,12 @@
   // ── Utilities ──────────────────────────────────────
   function capitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1).replace(/-/g, " ");
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement("div");
+    div.appendChild(document.createTextNode(str || ""));
+    return div.innerHTML;
   }
 
   // ── Initialize ─────────────────────────────────────

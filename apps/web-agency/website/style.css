@@ -224,6 +224,7 @@ h1 em{font-style:normal;background:linear-gradient(135deg,var(--primary),var(--a
 .grid{display:grid;gap:1.5rem}
 .cards-2{grid-template-columns:repeat(2,1fr)}
 .cards-3{grid-template-columns:repeat(3,1fr)}
+.cards-4{grid-template-columns:repeat(4,1fr)}
 
 /* ---------- Service Cards ---------- */
 .service-card{
@@ -297,48 +298,87 @@ h1 em{font-style:normal;background:linear-gradient(135deg,var(--primary),var(--a
 .step-img img{width:100%;height:100%;object-fit:cover}
 
 /* ---------- Pricing ---------- */
-.pricing-grid{align-items:start}
+.pricing-grid{align-items:stretch;gap:2rem;grid-auto-rows:1fr}
 .pricing-card{
-  background:var(--panel);border:1px solid var(--border);
-  border-radius:var(--radius-lg);padding:2rem;
+  background:linear-gradient(135deg,var(--panel),rgba(20,20,35,.6));
+  border:1px solid rgba(251,191,36,.15);
+  border-radius:var(--radius-lg);padding:2.5rem;
   position:relative;overflow:hidden;
   transition:all var(--transition);
+  display:flex;flex-direction:column;justify-content:space-between;
+  box-shadow:0 4px 30px rgba(0,0,0,.3);
+}
+.pricing-card::before{
+  content:"";position:absolute;top:-1px;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(251,191,36,.2),transparent);
 }
 .pricing-card:hover{
-  transform:translateY(-6px);
-  box-shadow:var(--shadow);
-  border-color:var(--accent);
+  transform:translateY(-8px);
+  border-color:rgba(251,191,36,.3);
+  box-shadow:0 12px 50px rgba(251,191,36,.15);
 }
 .pricing-card.featured{
   border-color:var(--accent);
-  background:linear-gradient(135deg,var(--panel),rgba(251,191,36,.05));
-  box-shadow:0 0 0 2px var(--accent-glow),0 12px 50px var(--accent-glow);
-  transform:scale(1.05);
+  background:linear-gradient(135deg,rgba(251,191,36,.08) 0%,var(--panel) 50%,rgba(21,128,61,.05) 100%);
+  box-shadow:0 0 0 1px var(--accent),0 0 30px rgba(251,191,36,.2),inset 0 1px 0 rgba(251,191,36,.1);
+  transform:scale(1.06);
+}
+.pricing-card.featured::after{
+  content:"";position:absolute;top:0;right:0;width:100px;height:100px;
+  background:radial-gradient(circle,rgba(251,191,36,.1) 0%,transparent 70%);
+  border-radius:0 var(--radius-lg) 0 100%;
 }
 .pricing-card.featured:hover{
-  transform:scale(1.05) translateY(-6px);
-  box-shadow:0 0 0 2px var(--accent-glow),0 16px 60px var(--accent-glow);
+  transform:scale(1.06) translateY(-8px);
+  box-shadow:0 0 0 1px var(--accent),0 0 40px rgba(251,191,36,.3),inset 0 1px 0 rgba(251,191,36,.15);
 }
 .pricing-badge{
-  position:absolute;top:12px;right:-35px;
+  position:absolute;top:1rem;right:1.5rem;
   background:linear-gradient(135deg,var(--accent),var(--accent-soft));
-  color:var(--bg);font-size:.65rem;font-weight:800;
-  padding:.35rem 3rem;
-  transform:rotate(45deg);
+  color:var(--bg);font-size:.7rem;font-weight:800;
+  padding:.5rem 1rem;
+  border-radius:.4rem;
   text-transform:uppercase;letter-spacing:.08em;
-  box-shadow:0 4px 12px var(--accent-glow);
+  box-shadow:0 4px 15px rgba(251,191,36,.3);
+  z-index:10;
 }
-.pricing-header{margin-bottom:1.5rem}
-.pricing-card .plan{color:var(--accent);font-weight:700;margin-bottom:.3rem;font-size:.9rem;text-transform:uppercase;letter-spacing:.06em}
-.pricing-card .price{font-size:2.6rem;font-weight:800;margin-bottom:.2rem;color:#fff}
-.pricing-card .price-note{color:var(--muted);font-size:.85rem;margin-bottom:0}
-.pricing-card ul{margin-bottom:1.8rem;display:flex;flex-direction:column;gap:.7rem}
+.pricing-header{margin-bottom:2rem}
+.pricing-card .plan{color:var(--accent);font-weight:700;margin-bottom:.5rem;font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;opacity:.9}
+.pricing-card .price{font-size:3rem;font-weight:800;margin-bottom:.3rem;color:#fff;line-height:1}
+.pricing-card .price-note{color:var(--muted);font-size:.8rem;margin-bottom:0;font-weight:500}
+.pricing-card ul{margin-bottom:2.5rem;display:flex;flex-direction:column;gap:.9rem;flex-grow:1}
 .pricing-card li{
-  color:var(--muted);font-size:.92rem;padding-left:1.5rem;position:relative;
+  color:var(--muted);font-size:.93rem;padding-left:1.8rem;position:relative;line-height:1.5;
 }
 .pricing-card li::before{
-  content:"✓";position:absolute;left:0;color:var(--success);font-weight:700;
+  content:"✓";position:absolute;left:0;top:.05rem;color:var(--success);font-weight:700;font-size:1.2rem;
 }
+
+.pricing-card .btn{
+  margin-top:auto;border:1px solid rgba(251,191,36,.2);
+  transition:all var(--transition);
+}
+.pricing-card .btn:hover{
+  border-color:var(--accent);
+  box-shadow:0 8px 25px rgba(251,191,36,.2);
+}
+.pricing-card:not(.featured) .btn{
+  background:linear-gradient(135deg,rgba(251,191,36,.15),rgba(251,191,36,.08));
+  color:var(--accent);
+}
+.pricing-card:not(.featured) .btn:hover{
+  background:linear-gradient(135deg,rgba(251,191,36,.25),rgba(251,191,36,.15));
+}
+
+.pricing-promo{
+  text-align:center;margin-top:3rem;
+  background:linear-gradient(135deg,rgba(251,191,36,.12),rgba(251,191,36,.06));
+  border:1px solid rgba(251,191,36,.3);border-radius:var(--radius-lg);
+  padding:2rem;color:#fff;
+  box-shadow:0 8px 32px rgba(251,191,36,.1);
+}
+.pricing-promo p{margin:0;font-size:1.1rem;line-height:1.7}
+.pricing-promo strong{color:var(--accent);font-weight:700}
 
 /* ---------- Testimonials ---------- */
 .testimonial-grid{gap:1.5rem}
@@ -451,6 +491,7 @@ input::placeholder,textarea::placeholder{color:rgba(176,190,223,.4)}
 @media(max-width:980px){
   .contact-grid{grid-template-columns:1fr}
   .cards-3{grid-template-columns:repeat(2,1fr)}
+  .cards-4{grid-template-columns:repeat(2,1fr)}
   .footer-grid{grid-template-columns:1fr 1fr}
   .footer-brand{grid-column:1/-1}
 
@@ -470,12 +511,16 @@ input::placeholder,textarea::placeholder{color:rgba(176,190,223,.4)}
   .hero-stats{flex-direction:column;gap:1rem}
   .cards-2{grid-template-columns:1fr}
   .portfolio-item img{height:220px}
-  .pricing-card.featured{transform:none}
-  .pricing-card.featured:hover{transform:translateY(-4px)}
+  .pricing-grid{gap:1.5rem}
+  .pricing-card{padding:2rem}
+  .pricing-card.featured{transform:none;scale:1}
+  .pricing-card.featured:hover{transform:translateY(-8px)}
+  .pricing-badge{top:1rem;right:1rem}
 }
 
 @media(max-width:640px){
   .cards-3{grid-template-columns:1fr}
+  .cards-4{grid-template-columns:1fr}
   .hero-content h1{font-size:2rem}
   .hero-actions{flex-direction:column}
   .hero-actions .btn{width:100%}

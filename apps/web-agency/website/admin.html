@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Angelorum Solutions</title>
+  <meta name="description" content="Admin dashboard for managing inquiries." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .admin-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 40px;
+      border-bottom: 2px solid rgba(124, 58, 237, 0.2);
+      padding-bottom: 20px;
+    }
+
+    .admin-header h1 {
+      font-size: 2rem;
+      color: #252f55;
+      margin: 0;
+    }
+
+    .filter-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 8px 16px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+
+    .filter-btn:hover {
+      background: #f3f4f6;
+      border-color: #7c3aed;
+    }
+
+    .filter-btn.active {
+      background: #7c3aed;
+      color: white;
+      border-color: #7c3aed;
+    }
+
+    .inquiries-grid {
+      display: grid;
+      gap: 20px;
+    }
+
+    .inquiry-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 20px;
+      transition: all 0.2s;
+    }
+
+    .inquiry-card:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border-color: #7c3aed;
+    }
+
+    .inquiry-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 15px;
+    }
+
+    .inquiry-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #252f55;
+    }
+
+    .inquiry-status {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-transform: capitalize;
+    }
+
+    .inquiry-status.new {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .inquiry-status.contacted {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .inquiry-status.in-progress {
+      background: #dbeafe;
+      color: #0c2d6b;
+    }
+
+    .inquiry-status.completed {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .inquiry-details {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 15px;
+      color: #555;
+      font-size: 0.95rem;
+    }
+
+    .inquiry-detail-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .inquiry-detail-label {
+      font-weight: 600;
+      color: #666;
+      min-width: 80px;
+    }
+
+    .inquiry-message {
+      grid-column: 1 / -1;
+      background: #f9fafb;
+      padding: 10px;
+      border-radius: 4px;
+      color: #444;
+      font-style: italic;
+    }
+
+    .inquiry-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 15px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 0.85rem;
+      color: #999;
+    }
+
+    .inquiry-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+
+    .btn-status {
+      background: #7c3aed;
+      color: white;
+    }
+
+    .btn-status:hover {
+      background: #6d28d9;
+    }
+
+    .btn-delete {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .btn-delete:hover {
+      background: #fecaca;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 20px;
+    }
+
+    .loader {
+      text-align: center;
+      padding: 40px;
+    }
+
+    .spinner {
+      border: 3px solid #f3f4f6;
+      border-top: 3px solid #7c3aed;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .status-menu {
+      position: absolute;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 10;
+      min-width: 150px;
+    }
+
+    .status-menu button {
+      display: block;
+      width: 100%;
+      padding: 8px 12px;
+      border: none;
+      background: none;
+      text-align: left;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #333;
+    }
+
+    .status-menu button:hover {
+      background: #f3f4f6;
+    }
+  </style>
+</head>
+<body>
+  <!-- NAV -->
+  <header class="topbar" id="top">
+    <div class="container nav-wrap">
+      <a class="brand" href="index.html">
+        <span class="brand-mark" aria-hidden="true">
+          <img src="sentinel-logo.svg" alt="" class="brand-logo" />
+        </span>
+        <span class="brand-text">Angelorum<span class="brand-accent"> Solutions</span></span>
+      </a>
+      <nav class="nav-links" id="nav-links">
+        <a href="index.html">Home</a>
+        <a href="index.html#pricing">Pricing</a>
+      </nav>
+      <button class="mobile-toggle" id="mobile-toggle" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <main class="admin-container">
+    <div class="admin-header">
+      <h1>Admin Dashboard</h1>
+      <button class="btn btn-sm" onclick="location.href='index.html'" style="background: #e5e7eb; color: #333;">← Back</button>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="new">New</button>
+      <button class="filter-btn" data-filter="contacted">Contacted</button>
+      <button class="filter-btn" data-filter="in-progress">In Progress</button>
+      <button class="filter-btn" data-filter="completed">Completed</button>
+    </div>
+
+    <!-- Inquiries List -->
+    <div class="inquiries-grid" id="inquiries-container">
+      <div class="loader">
+        <div class="spinner"></div>
+        <p>Loading inquiries...</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer-bottom">
+      <p>&copy; <span id="year"></span> Angelorum Solutions. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="admin.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const mobileToggle = document.getElementById('mobile-toggle');
+    const navLinks = document.getElementById('nav-links');
+    if (mobileToggle && navLinks) {
+      mobileToggle.addEventListener('click', () => navLinks.classList.toggle('open'));
+    }
+  </script>
+</body>
+</html>

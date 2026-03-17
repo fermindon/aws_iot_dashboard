@@ -6,7 +6,7 @@ const navLinks = document.getElementById("nav-links");
 
 let apiEndpoint = null;
 
-yearEl.textContent = new Date().getFullYear();
+if (yearEl) yearEl.textContent = new Date().getFullYear();
 
 /* Load API endpoint from config */
 fetch("./config.json")
@@ -17,7 +17,7 @@ fetch("./config.json")
   .then((config) => {
     if (config.apiEndpoint) {
       apiEndpoint = config.apiEndpoint;
-      form.setAttribute("data-api-endpoint", apiEndpoint);
+      if (form) form.setAttribute("data-api-endpoint", apiEndpoint);
     }
   })
   .catch(() => {
@@ -25,34 +25,38 @@ fetch("./config.json")
   });
 
 /* ---- Mobile menu toggle ---- */
-mobileToggle.addEventListener("click", () => {
-  navLinks.classList.toggle("open");
-  mobileToggle.setAttribute(
-    "aria-expanded",
-    navLinks.classList.contains("open")
-  );
-});
-
-/* Close mobile menu when a nav link is clicked */
-navLinks.querySelectorAll("a").forEach((link) => {
-  link.addEventListener("click", () => {
-    navLinks.classList.remove("open");
-    mobileToggle.setAttribute("aria-expanded", "false");
+if (mobileToggle && navLinks) {
+  mobileToggle.addEventListener("click", () => {
+    navLinks.classList.toggle("open");
+    mobileToggle.setAttribute(
+      "aria-expanded",
+      navLinks.classList.contains("open")
+    );
   });
-});
+
+  /* Close mobile menu when a nav link is clicked */
+  navLinks.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", () => {
+      navLinks.classList.remove("open");
+      mobileToggle.setAttribute("aria-expanded", "false");
+    });
+  });
+}
 
 /* ---- Scroll: shrink topbar ---- */
 const topbar = document.querySelector(".topbar");
 let lastScroll = 0;
-window.addEventListener("scroll", () => {
-  const y = window.scrollY;
-  if (y > 60) {
-    topbar.style.borderBottomColor = "rgba(37,47,85,.9)";
-  } else {
-    topbar.style.borderBottomColor = "";
-  }
-  lastScroll = y;
-}, { passive: true });
+if (topbar) {
+  window.addEventListener("scroll", () => {
+    const y = window.scrollY;
+    if (y > 60) {
+      topbar.style.borderBottomColor = "rgba(37,47,85,.9)";
+    } else {
+      topbar.style.borderBottomColor = "";
+    }
+    lastScroll = y;
+  }, { passive: true });
+}
 
 /* ---- Intersection Observer for scroll animations ---- */
 const observerOptions = {
@@ -113,7 +117,8 @@ document.querySelectorAll(".stat").forEach((stat) => {
 });
 
 /* ---- Form submission ---- */
-form.addEventListener("submit", (event) => {
+if (form) {
+  form.addEventListener("submit", (event) => {
   event.preventDefault();
 
   const data = new FormData(form);
@@ -166,8 +171,8 @@ form.addEventListener("submit", (event) => {
         statusEl.classList.add("success");
         form.reset();
       } else {
-        statusEl.textContent = json.error || "Inquiry sent! We'll contact you soon.";
-        statusEl.classList.add("success");
+        statusEl.textContent = json.error || "Something went wrong. Please try again.";
+        statusEl.classList.remove("success");
       }
     })
     .catch((err) => {
@@ -175,4 +180,5 @@ form.addEventListener("submit", (event) => {
       statusEl.textContent = "Error sending inquiry. Please try again.";
       statusEl.classList.remove("success");
     });
-});
+  });
+}

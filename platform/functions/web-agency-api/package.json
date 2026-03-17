@@ -1,0 +1,19 @@
+{
+  "name": "web-agency-api",
+  "version": "1.0.0",
+  "description": "Web agency payments and inquiries API",
+  "main": "dist/handler.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1000.0",
+    "stripe": "^14.0.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.161",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}

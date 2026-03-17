@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /portal.html
+Disallow: /confirmation.html
+
+Sitemap: https://www.angelorum.tech/sitemap.xml

@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="payment.css" />
 </head>
@@ -183,44 +184,103 @@
         mobileToggle.addEventListener("click", () => navLinks.classList.toggle("open"));
       }
 
-      // Package display names
-      const PACKAGE_NAMES = {
-        starter: "Starter Package",
-        growth: "Growth Package",
-        premium: "Premium Package",
-      };
-
-      // Parse URL params
-      const params = new URLSearchParams(window.location.search);
-      const orderId = params.get("orderId") || "—";
-      const pkg = params.get("package") || "";
-      const total = params.get("total") || "0.00";
-      const email = params.get("email") || "—";
-      const name = params.get("name") || "—";
-      const business = params.get("business") || "—";
-      const monthly = params.get("monthly") || null;
-
-      // Populate
       const el = (id) => document.getElementById(id);
-      if (el("conf-order-id")) el("conf-order-id").textContent = orderId;
-      if (el("conf-package")) el("conf-package").textContent = PACKAGE_NAMES[pkg] || pkg || "—";
-      if (el("conf-total")) el("conf-total").textContent = "$" + parseFloat(total).toLocaleString("en-US", { minimumFractionDigits: 2 });
-      if (el("conf-date")) el("conf-date").textContent = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-      if (el("conf-name")) el("conf-name").textContent = name;
-      if (el("conf-business")) el("conf-business").textContent = business;
-      if (el("conf-email")) el("conf-email").textContent = email;
 
-      if (monthly && parseFloat(monthly) > 0) {
-        const monthlyItem = el("conf-monthly-item");
-        const monthlyVal = el("conf-monthly");
-        if (monthlyItem) monthlyItem.style.display = "";
-        if (monthlyVal) monthlyVal.textContent = "$" + parseFloat(monthly).toLocaleString("en-US", { minimumFractionDigits: 2 }) + "/mo";
+      // Parse URL params — Stripe redirects back with ?session_id=cs_xxx
+      const params = new URLSearchParams(window.location.search);
+      const sessionId = params.get("session_id");
+
+      if (!sessionId) {
+        // Fallback: try legacy URL params from local checkout
+        populateFromParams(params);
+        return;
       }
 
-      // Pass email to portal link
-      const portalLink = el("go-to-portal");
-      if (portalLink && email && email !== "—") {
-        portalLink.href = "portal.html?email=" + encodeURIComponent(email);
+      // Load API base from config, then fetch session
+      fetch("./config.json")
+        .then((r) => r.ok ? r.json() : Promise.reject("No config"))
+        .then((cfg) => {
+          // Derive API_BASE from the paymentApiEndpoint (strip the trailing path)
+          let apiBase = cfg.apiEndpoint
+            ? cfg.apiEndpoint.replace(/\/inquiries$/, "")
+            : cfg.paymentApiEndpoint
+              ? cfg.paymentApiEndpoint.replace(/\/checkout\/session$/, "")
+              : null;
+          if (!apiBase) throw new Error("API not configured");
+          return apiBase;
+        })
+        .then((apiBase) => {
+          return fetch(`${apiBase}/checkout/session?session_id=${encodeURIComponent(sessionId)}`)
+            .then((res) => res.json());
+        })
+        .then((json) => {
+          if (!json.success || !json.data) {
+            console.warn("Failed to fetch session:", json.error);
+            if (el("conf-order-id")) el("conf-order-id").textContent = "Order confirmed";
+            return;
+          }
+
+          const d = json.data;
+          if (el("conf-order-id")) el("conf-order-id").textContent = d.orderId || sessionId.substring(0, 20) + "…";
+          if (el("conf-package")) el("conf-package").textContent = d.planName || d.plan || "—";
+          if (el("conf-total")) el("conf-total").textContent = d.amountTotal ? formatCents(d.amountTotal) : "—";
+          if (el("conf-date")) el("conf-date").textContent = d.createdAt
+            ? new Date(d.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+            : new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+          if (el("conf-name")) el("conf-name").textContent = d.customerEmail || "—";
+          if (el("conf-business")) el("conf-business").textContent = d.businessName || "—";
+          if (el("conf-email")) el("conf-email").textContent = d.customerEmail || "your email";
+
+          // Portal link
+          const portalLink = el("go-to-portal");
+          if (portalLink && d.customerEmail) {
+            portalLink.href = "portal.html?email=" + encodeURIComponent(d.customerEmail);
+          }
+        })
+        .catch((err) => {
+          console.error("Error fetching session:", err);
+          if (el("conf-order-id")) el("conf-order-id").textContent = "Order confirmed";
+        });
+
+      // Fallback: populate from URL params (legacy/local checkout)
+      function populateFromParams(params) {
+        const orderId = params.get("orderId") || "—";
+        const pkg = params.get("package") || "";
+        const total = params.get("total") || "0.00";
+        const email = params.get("email") || "—";
+        const name = params.get("name") || "—";
+        const business = params.get("business") || "—";
+        const monthly = params.get("monthly") || null;
+
+        const PACKAGE_NAMES = {
+          hosting: "Managed Hosting",
+          professional: "Professional Website",
+          premium: "Premium Website",
+        };
+
+        if (el("conf-order-id")) el("conf-order-id").textContent = orderId;
+        if (el("conf-package")) el("conf-package").textContent = PACKAGE_NAMES[pkg] || pkg || "—";
+        if (el("conf-total")) el("conf-total").textContent = "$" + parseFloat(total).toLocaleString("en-US", { minimumFractionDigits: 2 });
+        if (el("conf-date")) el("conf-date").textContent = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+        if (el("conf-name")) el("conf-name").textContent = name;
+        if (el("conf-business")) el("conf-business").textContent = business;
+        if (el("conf-email")) el("conf-email").textContent = email;
+
+        if (monthly && parseFloat(monthly) > 0) {
+          const monthlyItem = el("conf-monthly-item");
+          const monthlyVal = el("conf-monthly");
+          if (monthlyItem) monthlyItem.style.display = "";
+          if (monthlyVal) monthlyVal.textContent = "$" + parseFloat(monthly).toLocaleString("en-US", { minimumFractionDigits: 2 }) + "/mo";
+        }
+
+        const portalLink = el("go-to-portal");
+        if (portalLink && email && email !== "—") {
+          portalLink.href = "portal.html?email=" + encodeURIComponent(email);
+        }
+      }
+
+      function formatCents(cents) {
+        return "$" + (cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       }
 
     })();

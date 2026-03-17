@@ -1,0 +1,28 @@
+{
+  "TableName": "web-agency-orders",
+  "AttributeDefinitions": [
+    { "AttributeName": "id", "AttributeType": "S" },
+    { "AttributeName": "email", "AttributeType": "S" },
+    { "AttributeName": "stripeCheckoutSessionId", "AttributeType": "S" }
+  ],
+  "KeySchema": [
+    { "AttributeName": "id", "KeyType": "HASH" }
+  ],
+  "GlobalSecondaryIndexes": [
+    {
+      "IndexName": "emailIndex",
+      "KeySchema": [
+        { "AttributeName": "email", "KeyType": "HASH" }
+      ],
+      "Projection": { "ProjectionType": "ALL" }
+    },
+    {
+      "IndexName": "stripeCheckoutSessionIdIndex",
+      "KeySchema": [
+        { "AttributeName": "stripeCheckoutSessionId", "KeyType": "HASH" }
+      ],
+      "Projection": { "ProjectionType": "ALL" }
+    }
+  ],
+  "BillingMode": "PAY_PER_REQUEST"
+}

@@ -284,12 +284,33 @@ Resources:
                   - logs:CreateLogGroup
                   - logs:CreateLogStream
                   - logs:PutLogEvents
-                Resource: arn:aws:logs:*:*:*
-              # Secrets Manager (conditional — for OpenAI key)
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
+              # Secrets Manager (conditional — for OpenAI key & Stripe)
               - Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
-                Resource: '*'
+                Resource:
+                  - !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:stripe-keys*
+                  - !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:openai*
+              # SES — email sending (web agency)
+              - Effect: Allow
+                Action:
+                  - ses:SendEmail
+                  - ses:SendRawEmail
+                Resource:
+                  - !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/angelorum.tech
+              # DynamoDB — web agency tables
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource:
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/web-agency-*
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/web-agency-*/index/*
 
   # ──────────────────────────────────────────────
   #  Lambda — API Router
@@ -587,6 +608,93 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SaaSHttpApi}/*/*
 
+  # ──────────────────────────────────────────────
+  #  Lambda — Web Agency API
+  # ──────────────────────────────────────────────
+  WebAgencyApiFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub web-agency-api-${EnvironmentName}
+      Handler: dist/handler.handler
+      Runtime: nodejs20.x
+      Role: !GetAtt SaaSLambdaRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          ORDERS_TABLE: web-agency-orders
+          INQUIRIES_TABLE: web-agency-inquiries
+          CUSTOMERS_TABLE: web-agency-customers
+          STRIPE_SECRET_ARN: stripe-keys
+          FROM_EMAIL: noreply@angelorum.tech
+          INTERNAL_EMAIL: inquiry@angelorum.tech
+          DOMAIN: https://www.angelorum.tech
+          CORS_ORIGIN: https://www.angelorum.tech
+          STRIPE_WEBHOOK_SECRET: ''
+          ENVIRONMENT: !Ref EnvironmentName
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            return {
+              statusCode: 200,
+              headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+              body: JSON.stringify({ status: 'placeholder - deploy function code via CI/CD' })
+            };
+          };
+
+  # Integration — Web Agency API
+  WebAgencyApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt WebAgencyApiFunction.Arn
+      PayloadFormatVersion: '2.0'
+
+  # ── Web Agency Routes ───────────────────────────
+  WebAgencyInquiriesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'POST /agency/inquiries'
+      Target: !Sub integrations/${WebAgencyApiIntegration}
+
+  WebAgencyCheckoutRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'POST /agency/checkout/session'
+      Target: !Sub integrations/${WebAgencyApiIntegration}
+
+  WebAgencyWebhookRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'POST /agency/webhook/stripe'
+      Target: !Sub integrations/${WebAgencyApiIntegration}
+
+  WebAgencyOrdersRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'GET /agency/orders'
+      Target: !Sub integrations/${WebAgencyApiIntegration}
+
+  WebAgencyCheckoutSessionGetRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SaaSHttpApi
+      RouteKey: 'GET /agency/checkout/session'
+      Target: !Sub integrations/${WebAgencyApiIntegration}
+
+  WebAgencyApiPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref WebAgencyApiFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SaaSHttpApi}/*/*
+
 # ──────────────────────────────────────────────────
 #  Outputs
 # ──────────────────────────────────────────────────
@@ -631,3 +739,7 @@ Outputs:
     Value: !Ref TemplatesTable
   GenerationJobsTableName:
     Value: !Ref GenerationJobsTable
+
+  WebAgencyApiFunctionName:
+    Description: Web Agency API Lambda function name
+    Value: !Ref WebAgencyApiFunction
